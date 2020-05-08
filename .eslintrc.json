@@ -11,7 +11,7 @@
   "rules": {
     "prettier/prettier": "error",
     "block-scoped-var": "error",
-    "eqeqeq": "error",
+    "eqeqeq": ["error", "always", {"null": "ignore"}],
     "no-var": "error",
     "prefer-const": "error",
     "eol-last": "error",
