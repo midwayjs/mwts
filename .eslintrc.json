@@ -17,6 +17,7 @@
     "eol-last": "error",
     "prefer-arrow-callback": "error",
     "no-constant-condition": "off",
+    "no-process-exit": "off",
     "no-trailing-spaces": "error",
     "quotes": ["warn", "single", { "avoidEscape": true }]
   },
