@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig-midway.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts"
+  ],
+  "exclude": [
+    "test/fixtures/**/*.*",
+    "template/**/*.*",
+  ]
+}
