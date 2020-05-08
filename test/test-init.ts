@@ -3,13 +3,13 @@ import * as cp from 'child_process';
 import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
-import {accessSync} from 'fs';
-import {PackageJson} from '@npm/types';
-import {withFixtures, Fixtures} from 'inline-fixtures';
-import {describe, it, beforeEach, afterEach} from 'mocha';
+import { accessSync } from 'fs';
+import { PackageJson } from '@npm/types';
+import { withFixtures, Fixtures } from 'inline-fixtures';
+import { describe, it, beforeEach, afterEach } from 'mocha';
 
-import {nop, readJsonp as readJson, DefaultPackage} from '../src/util';
-import {Options} from '../src/cli';
+import { nop, readJsonp as readJson, DefaultPackage } from '../src/util';
+import { Options } from '../src/cli';
 import * as init from '../src/init';
 
 const OPTIONS: Options = {
@@ -18,12 +18,12 @@ const OPTIONS: Options = {
   dryRun: false,
   yes: false,
   no: false,
-  logger: {log: nop, error: nop, dir: nop},
+  logger: { log: nop, error: nop, dir: nop },
 };
-const OPTIONS_YES = Object.assign({}, OPTIONS, {yes: true});
-const OPTIONS_NO = Object.assign({}, OPTIONS, {no: true});
-const OPTIONS_YARN = Object.assign({}, OPTIONS_YES, {yarn: true});
-const MINIMAL_PACKAGE_JSON = {name: 'name', version: 'v1.1.1'};
+const OPTIONS_YES = Object.assign({}, OPTIONS, { yes: true });
+const OPTIONS_NO = Object.assign({}, OPTIONS, { no: true });
+const OPTIONS_YARN = Object.assign({}, OPTIONS_YES, { yarn: true });
+const MINIMAL_PACKAGE_JSON = { name: 'name', version: 'v1.1.1' };
 
 function hasExpectedScripts(packageJson: PackageJson): boolean {
   return (
@@ -53,7 +53,7 @@ describe('init', () => {
   });
 
   it('addScripts should add a scripts section if none exists', async () => {
-    const pkg: PackageJson = {...MINIMAL_PACKAGE_JSON};
+    const pkg: PackageJson = { ...MINIMAL_PACKAGE_JSON };
     const result = await init.addScripts(pkg, OPTIONS);
     assert.strictEqual(result, true); // made edits.
     assert.ok(pkg.scripts);
@@ -72,7 +72,7 @@ describe('init', () => {
     };
     const pkg: PackageJson = {
       ...MINIMAL_PACKAGE_JSON,
-      scripts: {...SCRIPTS},
+      scripts: { ...SCRIPTS },
     };
     const result = await init.addScripts(pkg, OPTIONS_NO);
     assert.strictEqual(result, false); // no edits.
@@ -91,7 +91,7 @@ describe('init', () => {
     };
     const pkg: PackageJson = {
       ...MINIMAL_PACKAGE_JSON,
-      scripts: {...SCRIPTS},
+      scripts: { ...SCRIPTS },
     };
     const result = await init.addScripts(pkg, OPTIONS_YES);
     assert.strictEqual(result, true); // made edits.
@@ -99,7 +99,7 @@ describe('init', () => {
   });
 
   it('addDependencies should add a deps section if none exists', async () => {
-    const pkg: PackageJson = {...MINIMAL_PACKAGE_JSON};
+    const pkg: PackageJson = { ...MINIMAL_PACKAGE_JSON };
     const result = await init.addDependencies(pkg, OPTIONS);
     assert.strictEqual(result, true); // made edits.
     assert.ok(pkg.devDependencies);
@@ -113,19 +113,19 @@ describe('init', () => {
     };
     const pkg: PackageJson = {
       ...MINIMAL_PACKAGE_JSON,
-      devDependencies: {...DEPS},
+      devDependencies: { ...DEPS },
     };
-    const OPTIONS_NO = Object.assign({}, OPTIONS, {no: true});
+    const OPTIONS_NO = Object.assign({}, OPTIONS, { no: true });
     const result = await init.addDependencies(pkg, OPTIONS_NO);
     assert.strictEqual(result, false); // no edits.
     assert.deepStrictEqual(pkg.devDependencies, DEPS);
   });
 
   it('addDependencies should edit existing deps on yes', async () => {
-    const DEPS = {mwts: 'something', typescript: 'or the other'};
+    const DEPS = { mwts: 'something', typescript: 'or the other' };
     const pkg: PackageJson = {
       ...MINIMAL_PACKAGE_JSON,
-      devDependencies: {...DEPS},
+      devDependencies: { ...DEPS },
     };
     const result = await init.addDependencies(pkg, OPTIONS_YES);
     assert.strictEqual(result, true); // made edits.
@@ -134,9 +134,9 @@ describe('init', () => {
 
   // init
   it('init should read local package.json', () => {
-    const originalContents = {some: 'property'};
+    const originalContents = { some: 'property' };
     return withFixtures(
-      {'package.json': JSON.stringify(originalContents)},
+      { 'package.json': JSON.stringify(originalContents) },
       async () => {
         const result = await init.init(OPTIONS_YES);
         assert.strictEqual(result, true);
@@ -169,7 +169,7 @@ describe('init', () => {
   it('init should support yarn', () => {
     return withFixtures(
       {
-        'package.json': JSON.stringify({name: 'test'}),
+        'package.json': JSON.stringify({ name: 'test' }),
         'yarn.lock': '',
       },
       async () => {

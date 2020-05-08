@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
-import {PathLike} from 'fs';
-import {describe, it} from 'mocha';
+import { PathLike } from 'fs';
+import { describe, it } from 'mocha';
 import {
   ConfigFile,
   getTSConfig,
@@ -39,7 +39,7 @@ const PATH_TO_CONFIG3 = path.resolve(FAKE_DIRECTORY, 'FAKE_CONFIG3');
 
 describe('util', () => {
   it('get should parse the correct tsconfig file', async () => {
-    const FAKE_CONFIG1 = {files: ['b']};
+    const FAKE_CONFIG1 = { files: ['b'] };
 
     function fakeReadFilep(
       configPath: string,
@@ -55,9 +55,9 @@ describe('util', () => {
   });
 
   it('should throw an error if it finds a circular reference', () => {
-    const FAKE_CONFIG1 = {files: ['b'], extends: 'FAKE_CONFIG2'};
-    const FAKE_CONFIG2 = {extends: 'FAKE_CONFIG3'};
-    const FAKE_CONFIG3 = {extends: 'tsconfig.json'};
+    const FAKE_CONFIG1 = { files: ['b'], extends: 'FAKE_CONFIG2' };
+    const FAKE_CONFIG2 = { extends: 'FAKE_CONFIG3' };
+    const FAKE_CONFIG3 = { extends: 'tsconfig.json' };
     const myMap = new Map();
     myMap.set(PATH_TO_TSCONFIG, FAKE_CONFIG1);
     myMap.set(PATH_TO_CONFIG2, FAKE_CONFIG2);
@@ -73,14 +73,14 @@ describe('util', () => {
 
   it('should follow dependency chain caused by extends files', async () => {
     const FAKE_CONFIG1 = {
-      compilerOptions: {a: 'n'},
+      compilerOptions: { a: 'n' },
       files: ['b'],
       extends: 'FAKE_CONFIG2',
     };
-    const FAKE_CONFIG2 = {include: ['/stuff/*'], extends: 'FAKE_CONFIG3'};
-    const FAKE_CONFIG3 = {exclude: ['doesnt/look/like/anything/to/me']};
+    const FAKE_CONFIG2 = { include: ['/stuff/*'], extends: 'FAKE_CONFIG3' };
+    const FAKE_CONFIG3 = { exclude: ['doesnt/look/like/anything/to/me'] };
     const combinedConfig = {
-      compilerOptions: {a: 'n'},
+      compilerOptions: { a: 'n' },
       files: ['b'],
       include: ['/stuff/*'],
       exclude: ['doesnt/look/like/anything/to/me'],
@@ -99,10 +99,10 @@ describe('util', () => {
   });
 
   it('when a file contains an extends field, the base file is loaded first then overridden by the inherited files', async () => {
-    const FAKE_CONFIG1 = {files: ['b'], extends: 'FAKE_CONFIG2'};
-    const FAKE_CONFIG2 = {files: ['c'], extends: 'FAKE_CONFIG3'};
-    const FAKE_CONFIG3 = {files: ['d']};
-    const combinedConfig = {compilerOptions: {}, files: ['b']};
+    const FAKE_CONFIG1 = { files: ['b'], extends: 'FAKE_CONFIG2' };
+    const FAKE_CONFIG2 = { files: ['c'], extends: 'FAKE_CONFIG3' };
+    const FAKE_CONFIG3 = { files: ['d'] };
+    const combinedConfig = { compilerOptions: {}, files: ['b'] };
     const myMap = new Map();
     myMap.set(PATH_TO_TSCONFIG, FAKE_CONFIG1);
     myMap.set(PATH_TO_CONFIG2, FAKE_CONFIG2);
@@ -116,9 +116,9 @@ describe('util', () => {
   });
 
   it('when reading a file, all filepaths should be relative to the config file currently being read', async () => {
-    const FAKE_CONFIG1 = {files: ['b'], extends: './foo/FAKE_CONFIG2'};
-    const FAKE_CONFIG2 = {include: ['c'], extends: './bar/FAKE_CONFIG3'};
-    const FAKE_CONFIG3 = {exclude: ['d']};
+    const FAKE_CONFIG1 = { files: ['b'], extends: './foo/FAKE_CONFIG2' };
+    const FAKE_CONFIG2 = { include: ['c'], extends: './bar/FAKE_CONFIG3' };
+    const FAKE_CONFIG3 = { exclude: ['d'] };
     const combinedConfig = {
       compilerOptions: {},
       exclude: ['d'],

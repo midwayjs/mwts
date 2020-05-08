@@ -2,7 +2,7 @@ import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as inquirer from 'inquirer';
 import * as path from 'path';
-import {ncp} from 'ncp';
+import { ncp } from 'ncp';
 import * as util from 'util';
 
 import {
@@ -14,8 +14,8 @@ import {
   DefaultPackage,
 } from './util';
 
-import {Options} from './cli';
-import {PackageJson} from '@npm/types';
+import { Options } from './cli';
+import { PackageJson } from '@npm/types';
 import chalk = require('chalk');
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -32,7 +32,7 @@ const DEFAULT_PACKAGE_JSON: PackageJson = {
   files: ['dist/src'],
   license: 'Apache-2.0',
   keywords: [],
-  scripts: {test: 'echo "Error: no test specified" && exit 1'},
+  scripts: { test: 'echo "Error: no test specified" && exit 1' },
 };
 
 async function query(
@@ -215,7 +215,7 @@ async function generateESLintConfig(options: Options): Promise<void> {
 async function generateTsConfig(options: Options): Promise<void> {
   const config = formatJson({
     extends: './node_modules/mwts/tsconfig-midway.json',
-    compilerOptions: {rootDir: '.', outDir: 'dist'},
+    compilerOptions: { rootDir: '.', outDir: 'dist' },
     include: ['src/**/*.ts', 'test/**/*.ts'],
   });
   return generateConfigFile(options, './tsconfig.json', config);
@@ -304,7 +304,7 @@ export async function init(options: Options): Promise<boolean> {
     cp.spawnSync(
       getPkgManagerCommand(options.yarn),
       ['install', '--ignore-scripts'],
-      {stdio: 'inherit'}
+      { stdio: 'inherit' }
     );
   }
 

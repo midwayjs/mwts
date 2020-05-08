@@ -1,8 +1,8 @@
 import chalk = require('chalk');
 import * as ts from 'typescript';
 
-import {Options} from './cli';
-import {getTSConfig, rimrafp} from './util';
+import { Options } from './cli';
+import { getTSConfig, rimrafp } from './util';
 
 interface TSConfig {
   compilerOptions: ts.CompilerOptions;
