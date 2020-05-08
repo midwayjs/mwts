@@ -9,7 +9,7 @@ import * as execa from 'execa';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson = require('../../package.json');
-const eslint = require.resolve('.bin/eslint');
+const eslint = require.resolve('eslint/bin/eslint');
 
 export interface Logger {
   log: (...args: Array<{}>) => void;
