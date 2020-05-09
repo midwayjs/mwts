@@ -141,3 +141,12 @@ export async function getTSConfig(
   const readArr = new Set<string>();
   return getBase('tsconfig.json', customReadFilep, readArr, rootDir);
 }
+
+export function readJSON(filepath: string) {
+  const content = fs.readFileSync(filepath, 'utf8');
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    throw new Error(`Failed to parse JSON file '${content}' for: ${e.message}`);
+  }
+}

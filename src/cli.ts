@@ -4,7 +4,7 @@ import * as meow from 'meow';
 import * as updateNotifier from 'update-notifier';
 import { init } from './init';
 import { clean } from './clean';
-import { isYarnUsed } from './util';
+import { isYarnUsed, readJSON } from './util';
 import * as execa from 'execa';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -77,6 +77,16 @@ export function getNodeVersion() {
   return process.version;
 }
 
+export function getEslintVersion() {
+  const packageJson = readJSON(require.resolve('eslint/package.json'));
+  return packageJson.version;
+}
+
+export function getPrettierVersion() {
+  const packageJson = readJSON(require.resolve('prettier/package.json'));
+  return packageJson.version;
+}
+
 function usage(msg?: string): void {
   if (msg) {
     logger.error(msg);
@@ -87,7 +97,9 @@ function usage(msg?: string): void {
 export async function run(verb: string, files: string[]): Promise<boolean> {
   // throw if running on an old version of nodejs
   const nodeMajorVersion = Number(getNodeVersion().slice(1).split('.')[0]);
-  console.log(`version: ${nodeMajorVersion}`);
+  console.log(`Node.js Version: ${nodeMajorVersion}`);
+  console.log(`ESLint Version: ${getEslintVersion()}`);
+  console.log(`Pretteir Version: ${getPrettierVersion()}`);
   if (nodeMajorVersion < 10) {
     throw new Error(
       `mwts requires node.js 10.x or up. You are currently running
