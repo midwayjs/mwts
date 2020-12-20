@@ -20,7 +20,12 @@ export interface DefaultPackage extends Bag<string> {
   '@types/node': string;
 }
 
-export async function readJsonp(jsonPath: string) {
+export interface PackageJson {
+  name: string;
+  version: string;
+}
+
+export async function readJsonp(jsonPath: string): Promise<unknown> {
   const contents = await readFilep(jsonPath, { encoding: 'utf8' });
   return JSON.parse(contents);
 }
@@ -29,7 +34,7 @@ export interface ReadFileP {
   (path: string, encoding: string): Promise<string>;
 }
 
-export function nop() {
+export function nop(): void {
   /* empty */
 }
 
@@ -102,7 +107,7 @@ function combineTSConfig(base: ConfigFile, inherited: ConfigFile): ConfigFile {
  */
 export interface ConfigFile {
   files?: string[];
-  compilerOptions?: {};
+  compilerOptions?: unknown;
   include?: string[];
   exclude?: string[];
   extends?: string[];
@@ -142,7 +147,7 @@ export async function getTSConfig(
   return getBase('tsconfig.json', customReadFilep, readArr, rootDir);
 }
 
-export function readJSON(filepath: string) {
+export function readJSON(filepath: string): unknown {
   const content = fs.readFileSync(filepath, 'utf8');
   try {
     return JSON.parse(content);

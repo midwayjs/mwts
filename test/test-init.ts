@@ -140,7 +140,7 @@ describe('init', () => {
       async () => {
         const result = await init.init(OPTIONS_YES);
         assert.strictEqual(result, true);
-        const contents = await readJson('./package.json');
+        const contents = (await readJson('./package.json')) as PackageJson;
 
         assert.notStrictEqual(
           contents,
@@ -148,6 +148,7 @@ describe('init', () => {
           'the file should have been modified'
         );
         assert.strictEqual(
+          // @ts-expect-error unrelated property
           contents.some,
           originalContents.some,
           'unrelated property should have preserved'
@@ -160,7 +161,7 @@ describe('init', () => {
     return withFixtures({}, async () => {
       const result = await init.init(OPTIONS_YES);
       assert.strictEqual(result, true);
-      const contents = await readJson('./package.json');
+      const contents = (await readJson('./package.json')) as PackageJson;
       assert.strictEqual(hasExpectedScripts(contents), true);
       assert.strictEqual(hasExpectedDependencies(contents), true);
     });
@@ -176,9 +177,9 @@ describe('init', () => {
         const result = await init.init(OPTIONS_YARN);
         assert.strictEqual(result, true);
 
-        const contents = await readJson('./package.json');
+        const contents = (await readJson('./package.json')) as PackageJson;
         const cmd = process.platform === 'win32' ? 'yarn.cmd' : 'yarn';
-        assert.strictEqual(contents.scripts.prepare, cmd + ' run build');
+        assert.strictEqual(contents.scripts?.prepare, cmd + ' run build');
       }
     );
   });

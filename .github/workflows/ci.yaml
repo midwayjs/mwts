@@ -1,22 +1,18 @@
-on:
-  push:
-    branches:
-      - master
-  pull_request:
+on: [push, pull_request]
 name: ci
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [10, 12, 13]
+        node: [10, 12, 14, 15]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
       - run: node --version
-      - run: npm ci
+      - run: npm install
       - run: npm test
   windows:
     runs-on: windows-latest
@@ -25,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 12
-      - run: npm ci
+      - run: npm install
       - run: npm run system-test
   system_test:
     runs-on: ubuntu-latest
@@ -34,7 +30,7 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 12
-      - run: npm ci
+      - run: npm install
       - run: npm run system-test
   lint:
     runs-on: ubuntu-latest
@@ -43,7 +39,7 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 12
-      - run: npm ci
+      - run: npm install
       - run: npm run lint
   coverage:
     runs-on: ubuntu-latest
@@ -52,7 +48,7 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 12
-      - run: npm ci
+      - run: npm install
       - run: npm test
       - run: npm run codecov
       - uses: codecov/codecov-action@v1

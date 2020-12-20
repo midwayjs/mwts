@@ -142,7 +142,7 @@ export async function addDependencies(
   return edits;
 }
 
-function formatJson(object: {}) {
+function formatJson(object: unknown) {
   const json = JSON.stringify(object, null, '  ');
   return `${json}\n`;
 }
@@ -263,7 +263,7 @@ export async function init(options: Options): Promise<boolean> {
   let generatedPackageJson = false;
   let packageJson;
   try {
-    packageJson = await readJson('./package.json');
+    packageJson = (await readJson('./package.json')) as PackageJson;
   } catch (err) {
     if (err.code !== 'ENOENT') {
       throw new Error(`Unable to open package.json file: ${err.message}`);

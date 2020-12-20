@@ -9,4 +9,4 @@ yarn-error.log
 yarn.lock
 __pycache__
 
-!package-lock.json
+package-lock.json

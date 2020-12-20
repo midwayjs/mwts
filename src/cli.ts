@@ -6,15 +6,16 @@ import { init } from './init';
 import { clean } from './clean';
 import { isYarnUsed, readJSON } from './util';
 import * as execa from 'execa';
+import { PackageJson } from '@npm/types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson = require('../../package.json');
 const eslint = require.resolve('eslint/bin/eslint');
 
 export interface Logger {
-  log: (...args: Array<{}>) => void;
-  error: (...args: Array<{}>) => void;
-  dir: (obj: {}, options?: {}) => void;
+  log: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  dir: (obj: unknown, options?: any) => void;
 }
 
 export interface Options {
@@ -73,17 +74,21 @@ const cli = meow({
  * Exported purely for stubbing purposes.
  * @private
  */
-export function getNodeVersion() {
+export function getNodeVersion(): string {
   return process.version;
 }
 
-export function getEslintVersion() {
-  const packageJson = readJSON(require.resolve('eslint/package.json'));
+export function getEslintVersion(): string {
+  const packageJson = readJSON(
+    require.resolve('eslint/package.json')
+  ) as PackageJson;
   return packageJson.version;
 }
 
-export function getPrettierVersion() {
-  const packageJson = readJSON(require.resolve('prettier/package.json'));
+export function getPrettierVersion(): string {
+  const packageJson = readJSON(
+    require.resolve('prettier/package.json')
+  ) as PackageJson;
   return packageJson.version;
 }
 
