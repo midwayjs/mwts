@@ -11,6 +11,7 @@
     "CHANGELOG.md",
     "dist/src",
     "dist/template",
+    "dist/.eslintrc.json",
     ".prettierrc.json",
     ".eslintrc.json",
     "LICENSE",
