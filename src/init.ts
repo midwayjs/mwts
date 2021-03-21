@@ -67,13 +67,13 @@ export async function addScripts(
   let edits = false;
   const pkgManager = getPkgManagerCommand(options.yarn);
   const scripts: Bag<string> = {
-    check: 'mwts check',
+    lint: 'mwts lint',
     clean: 'mwts clean',
     build: 'tsc',
     fix: 'mwts fix',
     prepare: `${pkgManager} run build`,
     pretest: `${pkgManager} run build`,
-    posttest: `${pkgManager} run check`,
+    posttest: `${pkgManager} run lint`,
   };
 
   if (!packageJson.scripts) {
@@ -166,6 +166,8 @@ export const ESLINT_CONFIG = {
   extends: './node_modules/mwts/',
 };
 
+export const ESLINT_IGNORE = 'dist/\n';
+
 async function generateConfigFile(
   options: Options,
   filename: string,
@@ -212,6 +214,10 @@ async function generateESLintConfig(options: Options): Promise<void> {
   );
 }
 
+async function generateESLintIgnore(options: Options): Promise<void> {
+  return generateConfigFile(options, './.eslintignore', ESLINT_IGNORE);
+}
+
 async function generateTsConfig(options: Options): Promise<void> {
   const config = formatJson({
     extends: './node_modules/mwts/tsconfig-midway.json',
@@ -224,7 +230,8 @@ async function generateTsConfig(options: Options): Promise<void> {
 async function generatePrettierConfig(options: Options): Promise<void> {
   const style = `module.exports = {
   ...require('mwts/.prettierrc.json')
-}`;
+}
+`;
   return generateConfigFile(options, './.prettierrc.js', style);
 }
 
@@ -293,10 +300,11 @@ export async function init(options: Options): Promise<boolean> {
   }
   await generateTsConfig(options);
   await generateESLintConfig(options);
+  await generateESLintIgnore(options);
   await generatePrettierConfig(options);
   await installDefaultTemplate(options);
 
-  // Run `npm install` after initial setup so `npm run check` works right away.
+  // Run `npm install` after initial setup so `npm run lint` works right away.
   if (!options.dryRun) {
     // --ignore-scripts so that compilation doesn't happen because there's no
     // source files yet.

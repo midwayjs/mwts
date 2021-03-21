@@ -2,7 +2,7 @@ import chalk = require('chalk');
 import * as cp from 'child_process';
 import * as fs from 'fs-extra';
 import * as tmp from 'tmp';
-import { assert } from 'chai';
+import * as assert from 'assert';
 import * as path from 'path';
 import { describe, it, before, after } from 'mocha';
 
@@ -13,11 +13,13 @@ const pkg = require('../../package.json');
 const keep = !!process.env.mwts_KEEP_TEMPDIRS;
 const stagingDir = tmp.dirSync({ keep, unsafeCleanup: true });
 const stagingPath = stagingDir.name;
-const execOpts = {
+const execOpts: Pick<
+  cp.SpawnSyncOptionsWithStringEncoding,
+  'cwd' | 'encoding'
+> = {
   cwd: `${stagingPath}${path.sep}kitchen`,
   encoding: 'utf8',
 };
-
 describe('🚰 kitchen sink', () => {
   const fixturesPath = path.join('test', 'fixtures');
   const mwtsPath = path.join('node_modules', '.bin', 'mwts');
@@ -122,16 +124,26 @@ describe('🚰 kitchen sink', () => {
         .readFileSync(path.join(kitchenPath, '.eslintrc.json'), 'utf8')
         .endsWith('\n')
     );
+    assert.ok(
+      fs
+        .readFileSync(path.join(kitchenPath, '.eslintignore'), 'utf8')
+        .endsWith('\n')
+    );
+    assert.ok(
+      fs
+        .readFileSync(path.join(kitchenPath, '.prettierrc.js'), 'utf8')
+        .endsWith('\n')
+    );
   });
 
-  it('should check before fix', async () => {
+  it('should lint before fix', async () => {
     const res = await execa(
       'npm',
-      ['run', 'check'],
+      ['run', 'lint'],
       Object.assign({}, { reject: false }, execOpts)
     );
     assert.strictEqual(res.exitCode, 1);
-    assert.include(res.stdout, 'assigned a value but');
+    assert.ok(res.stdout.includes('assigned a value but'));
   });
 
   it('should fix', () => {
@@ -146,8 +158,8 @@ describe('🚰 kitchen sink', () => {
     assert.strictEqual(preFix[0].trim() + ';', postFix[0]); // fix should have added a semi-colon
   });
 
-  it('should check after fix', () => {
-    cp.execSync('npm run check', execOpts);
+  it('should lint after fix', () => {
+    cp.execSync('npm run lint', execOpts);
   });
 
   it('should build', () => {
