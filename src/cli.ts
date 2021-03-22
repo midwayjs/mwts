@@ -10,6 +10,7 @@ import { PackageJson } from '@npm/types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson = require('../../package.json') as PackageJson;
+const eslint = require.resolve('eslint/bin/eslint');
 
 export interface Logger {
   log: (...args: unknown[]) => void;
@@ -145,7 +146,7 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
     case 'lint':
     case 'check': {
       try {
-        await execa('node', ['./node_modules/eslint/bin/eslint', ...flags], {
+        await execa('node', [eslint, ...flags], {
           stdio: 'inherit',
         });
         return true;
@@ -158,7 +159,7 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
       try {
         await execa(
           'node',
-          ['./node_modules/eslint/bin/eslint', fixFlag, ...flags],
+          [eslint, fixFlag, ...flags],
           {
             stdio: 'inherit',
           }
