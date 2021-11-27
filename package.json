@@ -1,6 +1,6 @@
 {
   "name": "mwts",
-  "version": "1.2.3",
+  "version": "1.2.2",
   "description": "MidwayJS TypeScript Style",
   "repository": "midwayjs/mwts",
   "main": "dist/src/index.js",
