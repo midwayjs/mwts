@@ -12,6 +12,7 @@ import {
   writeFileAtomicp as write,
   Bag,
   DefaultPackage,
+  safeError,
 } from './util';
 
 import { Options } from './cli';
@@ -176,7 +177,8 @@ async function generateConfigFile(
   let existing;
   try {
     existing = await read(filename, 'utf8');
-  } catch (err: any) {
+  } catch (exc) {
+    const err = safeError(exc);
     if (err.code === 'ENOENT') {
       /* not found, create it. */
     } else {
@@ -244,7 +246,8 @@ export async function installDefaultTemplate(
 
   try {
     fs.mkdirSync(targetDirName);
-  } catch (err: any) {
+  } catch (exc) {
+    const err = safeError(exc);
     if (err.code !== 'EEXIST') {
       throw err;
     }
@@ -271,7 +274,8 @@ export async function init(options: Options): Promise<boolean> {
   let packageJson;
   try {
     packageJson = (await readJson('./package.json')) as PackageJson;
-  } catch (err: any) {
+  } catch (exc) {
+    const err = safeError(exc);
     if (err.code !== 'ENOENT') {
       throw new Error(`Unable to open package.json file: ${err.message}`);
     }

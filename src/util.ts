@@ -6,7 +6,7 @@ import * as ncp from 'ncp';
 import * as writeFileAtomic from 'write-file-atomic';
 import * as JSON5 from 'json5';
 
-export const readFilep = promisify(fs.readFile);
+export const readFilep = promisify(fs.readFile) as ReadFileP;
 export const rimrafp = promisify(rimraf);
 export const writeFileAtomicp = promisify(writeFileAtomic);
 export const ncpp = promisify(ncp.ncp);
@@ -22,7 +22,7 @@ export interface DefaultPackage extends Bag<string> {
 }
 
 export async function readJsonp(jsonPath: string) {
-  const contents = await readFilep(jsonPath, { encoding: 'utf8' });
+  const contents = await readFilep(jsonPath, 'utf8');
   return JSON5.parse(contents);
 }
 
@@ -32,6 +32,16 @@ export interface ReadFileP {
 
 export function nop() {
   /* empty */
+}
+
+export function safeError(err: unknown): NodeJS.ErrnoException {
+  if (err == null) {
+    return new Error(`(${err})`);
+  }
+  if (err instanceof Error) {
+    return err;
+  }
+  return new Error(`${err}`);
 }
 
 /**
@@ -45,7 +55,7 @@ export function nop() {
  */
 async function getBase(
   filePath: string,
-  customReadFilep: ReadFileP,
+  customReadFilep: ReadFileP | undefined,
   readFiles: Set<string>,
   currentDir: string
 ): Promise<ConfigFile> {
@@ -61,16 +71,16 @@ async function getBase(
   readFiles.add(filePath);
   try {
     const json = await customReadFilep(filePath, 'utf8');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let contents: any;
+    let contents: ConfigFile;
     try {
       contents = JSON5.parse(json);
-    } catch (err: any) {
+    } catch (exc) {
+      const err = safeError(exc);
       err.message = `Unable to parse ${filePath}!\n${err.message}`;
       throw err;
     }
 
-    if (contents.extends) {
+    if (typeof contents.extends === 'string') {
       const nextFile = await getBase(
         contents.extends,
         customReadFilep,
@@ -78,10 +88,21 @@ async function getBase(
         path.dirname(filePath)
       );
       contents = combineTSConfig(nextFile, contents);
+    } else if (Array.isArray(contents.extends)) {
+      for (const extend of contents.extends) {
+        const nextFile = await getBase(
+          extend,
+          customReadFilep,
+          readFiles,
+          path.dirname(filePath)
+        );
+        contents = combineTSConfig(nextFile, contents);
+      }
     }
 
     return contents;
-  } catch (err: any) {
+  } catch (exc) {
+    const err = safeError(exc);
     err.message = `Error: ${filePath}\n${err.message}`;
     throw err;
   }
@@ -113,7 +134,7 @@ export interface ConfigFile {
   compilerOptions?: unknown;
   include?: string[];
   exclude?: string[];
-  extends?: string[];
+  extends?: string[] | string;
 }
 
 /**
@@ -146,14 +167,15 @@ export async function getTSConfig(
   customReadFilep?: ReadFileP
 ): Promise<ConfigFile> {
   const readArr = new Set<string>();
-  return getBase('tsconfig.json', customReadFilep!, readArr, rootDir);
+  return getBase('tsconfig.json', customReadFilep, readArr, rootDir);
 }
 
 export function readJSON(filepath: string): unknown {
   const content = fs.readFileSync(filepath, 'utf8');
   try {
     return JSON.parse(content);
-  } catch (err: any) {
+  } catch (exc) {
+    const err = safeError(exc);
     throw new Error(
       `Failed to parse JSON file '${content}' for: ${err.message}`
     );
