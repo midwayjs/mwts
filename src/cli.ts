@@ -105,7 +105,7 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
   const nodeMajorVersion = Number(getNodeVersion().slice(1).split('.')[0]);
   console.log(`Node.js Version: ${nodeMajorVersion}`);
   console.log(`ESLint Version: ${getEslintVersion()}`);
-  console.log(`Pretteir Version: ${getPrettierVersion()}`);
+  console.log(`Prettier Version: ${getPrettierVersion()}`);
   if (nodeMajorVersion < 10) {
     throw new Error(
       `mwts requires node.js 10.x or up. You are currently running
