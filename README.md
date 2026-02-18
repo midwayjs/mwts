@@ -50,26 +50,31 @@ mwts check *.ts
 `mwts lint/check/fix` all support file arguments.
 If you run them without `mwts init`, mwts will fall back to its built-in default ESLint config.
 
-### Custom formatter example (Biome)
-`mwts` ships built-in presets for default Prettier mode and optional Stylistic mode.
-If you want another formatter, install and wire it in your project yourself.
+### Built-in formatter modes
+`mwts` has built-in formatter modes:
+- default: `Prettier + ESLint`
+- `--formatter stylistic`: `ESLint + Stylistic`
+- `--formatter biome`: `Biome + ESLint` (Biome handles formatting)
+
+### Custom formatter example
+If you want a formatter outside built-in modes, install and wire it in your project yourself.
 
 Example:
 
 ```sh
-npm i -D @biomejs/biome
+npm i -D dprint
 ```
 
 ```json
 {
   "scripts": {
-    "format": "biome format --write .",
-    "check:format": "biome check ."
+    "format": "dprint fmt",
+    "check:format": "dprint check"
   }
 }
 ```
 
-You can keep `mwts lint/check/fix` for linting and use Biome only for formatting.
+You can keep `mwts lint/check/fix` for linting and use another formatter only for formatting.
 
 ### Working with eslint
 Under the covers, we use [eslint][eslint-url] to enforce the style guide and provide automated fixes, and [prettier][prettier-url] to re-format code. To use the shared `eslint` configuration, create an `eslint.config.js` in your project directory, and extend the shared config:
