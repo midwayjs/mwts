@@ -82,11 +82,12 @@ Show your love for `mwts` and include a badge!
 
 ## Migrating from mwts 1.x to 2.x
 - Upgrade runtime/tooling baseline:
-  - Node.js >= 18
+  - Node.js >= 20
   - TypeScript >= 5
 - `mwts init` now generates `eslint.config.js` and `eslint.ignores.js` (flat config), instead of `.eslintrc.json` and `.eslintignore`.
 - Default formatter mode stays `Prettier + ESLint`.
 - Optional formatter mode: `mwts init --formatter stylistic`.
+- `mwts lint/check/fix` support per-file arguments and can run without `mwts init` by falling back to mwts built-in config.
 
 ## License
 [Apache-2.0](LICENSE)
