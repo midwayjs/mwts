@@ -1,12 +1,16 @@
+'use strict';
+
 const eslint = require('@eslint/js');
 const tseslint = require('typescript-eslint');
 const prettierConfig = require('eslint-config-prettier');
 const pluginN = require('eslint-plugin-n');
 const pluginPrettier = require('eslint-plugin-prettier');
 const globals = require('globals');
+const ignores = require('./eslint.ignores.js');
 const defineConfig = require('eslint/config').defineConfig;
 
 module.exports = defineConfig([
+  { ignores },
   eslint.configs.recommended,
   prettierConfig,
   {

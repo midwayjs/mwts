@@ -15,11 +15,10 @@ import {
   safeError,
 } from './util';
 
-import { Options } from './cli';
-import { PackageJson } from '@npm/types';
+import { FormatterMode, Options } from './cli';
+import { PackageJSON as PackageJson } from '@npm/types';
 import chalk = require('chalk');
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pkg = require('../../package.json');
 
 const ncpp = util.promisify(ncp);
@@ -35,6 +34,108 @@ const DEFAULT_PACKAGE_JSON: PackageJson = {
   keywords: [],
   scripts: { test: 'echo "Error: no test specified" && exit 1' },
 };
+
+const ESLINT_CONFIG = `let customConfig = [];
+let hasIgnoresFile = false;
+try {
+  require.resolve('./eslint.ignores.js');
+  hasIgnoresFile = true;
+} catch {
+  // eslint.ignores.js doesn't exist
+}
+
+if (hasIgnoresFile) {
+  const ignores = require('./eslint.ignores.js');
+  customConfig = [{ ignores }];
+}
+
+module.exports = [...customConfig, ...require('mwts')];
+`;
+
+const ESLINT_STYLISTIC_CONFIG = `const stylistic = require('@stylistic/eslint-plugin');
+
+let customConfig = [];
+let hasIgnoresFile = false;
+try {
+  require.resolve('./eslint.ignores.js');
+  hasIgnoresFile = true;
+} catch {
+  // eslint.ignores.js doesn't exist
+}
+
+if (hasIgnoresFile) {
+  const ignores = require('./eslint.ignores.js');
+  customConfig = [{ ignores }];
+}
+
+module.exports = [
+  ...customConfig,
+  ...require('mwts'),
+  {
+    plugins: {
+      '@stylistic': stylistic,
+    },
+    rules: {
+      'prettier/prettier': 'off',
+      '@stylistic/semi': ['error', 'always'],
+      '@stylistic/quotes': ['warn', 'single', { avoidEscape: true }],
+      '@stylistic/comma-dangle': ['error', 'always-multiline'],
+      '@stylistic/arrow-parens': ['error', 'as-needed'],
+      '@stylistic/object-curly-spacing': ['error', 'always'],
+    },
+  },
+];
+`;
+
+const ESLINT_BIOME_CONFIG = `let customConfig = [];
+let hasIgnoresFile = false;
+try {
+  require.resolve('./eslint.ignores.js');
+  hasIgnoresFile = true;
+} catch {
+  // eslint.ignores.js doesn't exist
+}
+
+if (hasIgnoresFile) {
+  const ignores = require('./eslint.ignores.js');
+  customConfig = [{ ignores }];
+}
+
+module.exports = [
+  ...customConfig,
+  ...require('mwts'),
+  {
+    rules: {
+      'prettier/prettier': 'off',
+    },
+  },
+];
+`;
+
+const BIOME_CONFIG = `{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "asNeeded"
+    }
+  }
+}
+`;
+
+export const ESLINT_IGNORE = "module.exports = ['dist/', '**/node_modules/']\n";
+
+function getFormatterMode(options: Options): FormatterMode {
+  return options.formatterMode || 'prettier';
+}
 
 async function query(
   message: string,
@@ -95,7 +196,6 @@ export async function addScripts(
       }
 
       if (install) {
-        // eslint-disable-next-line require-atomic-updates
         packageJson.scripts[script] = scripts[script];
         edits = true;
       }
@@ -133,8 +233,45 @@ export async function addDependencies(
       }
 
       if (install) {
-        // eslint-disable-next-line require-atomic-updates
         packageJson.devDependencies[dep] = deps[dep];
+        edits = true;
+      }
+    }
+  }
+
+  if (getFormatterMode(options) === 'stylistic') {
+    const dep = '@stylistic/eslint-plugin';
+    const target = '^5.5.0';
+    let install = true;
+    const existing = packageJson.devDependencies[dep];
+    if (existing !== target) {
+      if (existing) {
+        const message =
+          `Already have devDependency for ${chalk.bold(dep)}:\n` +
+          `-${chalk.red(existing)}\n+${chalk.green(target)}`;
+        install = await query(message, 'Overwrite', false, options);
+      }
+      if (install) {
+        packageJson.devDependencies[dep] = target;
+        edits = true;
+      }
+    }
+  }
+
+  if (getFormatterMode(options) === 'biome') {
+    const dep = '@biomejs/biome';
+    const target = '^1.9.4';
+    let install = true;
+    const existing = packageJson.devDependencies[dep];
+    if (existing !== target) {
+      if (existing) {
+        const message =
+          `Already have devDependency for ${chalk.bold(dep)}:\n` +
+          `-${chalk.red(existing)}\n+${chalk.green(target)}`;
+        install = await query(message, 'Overwrite', false, options);
+      }
+      if (install) {
+        packageJson.devDependencies[dep] = target;
         edits = true;
       }
     }
@@ -163,12 +300,6 @@ async function writePackageJson(
   options.logger.dir(preview);
 }
 
-export const ESLINT_CONFIG = {
-  extends: './node_modules/mwts/',
-};
-
-export const ESLINT_IGNORE = 'dist/\n';
-
 async function generateConfigFile(
   options: Options,
   filename: string,
@@ -182,7 +313,9 @@ async function generateConfigFile(
     if (err.code === 'ENOENT') {
       /* not found, create it. */
     } else {
-      throw new Error(`Unknown error reading ${filename}: ${err.message}`);
+      throw new Error(`Unknown error reading ${filename}: ${err.message}`, {
+        cause: exc,
+      });
     }
   }
 
@@ -209,15 +342,18 @@ async function generateConfigFile(
 }
 
 async function generateESLintConfig(options: Options): Promise<void> {
-  return generateConfigFile(
-    options,
-    './.eslintrc.json',
-    formatJson(ESLINT_CONFIG)
-  );
+  const formatterMode = getFormatterMode(options);
+  const config =
+    formatterMode === 'stylistic'
+      ? ESLINT_STYLISTIC_CONFIG
+      : formatterMode === 'biome'
+        ? ESLINT_BIOME_CONFIG
+        : ESLINT_CONFIG;
+  return generateConfigFile(options, './eslint.config.js', config);
 }
 
 async function generateESLintIgnore(options: Options): Promise<void> {
-  return generateConfigFile(options, './.eslintignore', ESLINT_IGNORE);
+  return generateConfigFile(options, './eslint.ignores.js', ESLINT_IGNORE);
 }
 
 async function generateTsConfig(options: Options): Promise<void> {
@@ -230,11 +366,24 @@ async function generateTsConfig(options: Options): Promise<void> {
 }
 
 async function generatePrettierConfig(options: Options): Promise<void> {
+  if (
+    getFormatterMode(options) === 'stylistic' ||
+    getFormatterMode(options) === 'biome'
+  ) {
+    return;
+  }
   const style = `module.exports = {
-  ...require('mwts/.prettierrc.json')
-}
+  ...require('mwts/.prettierrc.json'),
+};
 `;
   return generateConfigFile(options, './.prettierrc.js', style);
+}
+
+async function generateBiomeConfig(options: Options): Promise<void> {
+  if (getFormatterMode(options) !== 'biome') {
+    return;
+  }
+  return generateConfigFile(options, './biome.json', BIOME_CONFIG + '\n');
 }
 
 export async function installDefaultTemplate(
@@ -277,7 +426,9 @@ export async function init(options: Options): Promise<boolean> {
   } catch (exc) {
     const err = safeError(exc);
     if (err.code !== 'ENOENT') {
-      throw new Error(`Unable to open package.json file: ${err.message}`);
+      throw new Error(`Unable to open package.json file: ${err.message}`, {
+        cause: exc,
+      });
     }
     const generate = await query(
       `${chalk.bold('package.json')} does not exist.`,
@@ -295,24 +446,29 @@ export async function init(options: Options): Promise<boolean> {
     generatedPackageJson = true;
   }
 
-  const addedDeps = await addDependencies(packageJson, options);
-  const addedScripts = await addScripts(packageJson, options);
+  const [addedDeps, addedScripts] = await Promise.all([
+    addDependencies(packageJson, options),
+    addScripts(packageJson, options),
+  ]);
   if (generatedPackageJson || addedDeps || addedScripts) {
     await writePackageJson(packageJson, options);
   } else {
     options.logger.log('No edits needed in package.json.');
   }
-  await generateTsConfig(options);
-  await generateESLintConfig(options);
-  await generateESLintIgnore(options);
-  await generatePrettierConfig(options);
+
+  await Promise.all([
+    generateTsConfig(options),
+    generateESLintConfig(options),
+    generateESLintIgnore(options),
+    generatePrettierConfig(options),
+    generateBiomeConfig(options),
+  ]);
   await installDefaultTemplate(options);
 
   // Run `npm install` after initial setup so `npm run lint` works right away.
   if (!options.dryRun) {
     // --ignore-scripts so that compilation doesn't happen because there's no
     // source files yet.
-
     cp.spawnSync(
       getPkgManagerCommand(options.yarn),
       ['install', '--ignore-scripts'],

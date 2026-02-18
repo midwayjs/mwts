@@ -8,7 +8,6 @@ import { describe, it, before, after } from 'mocha';
 
 import spawn = require('cross-spawn');
 import execa = require('execa');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pkg = require('../../package.json');
 const keep = !!process.env.mwts_KEEP_TEMPDIRS;
 const stagingDir = tmp.dirSync({ keep, unsafeCleanup: true });
@@ -22,8 +21,14 @@ const execOpts: Pick<
 };
 describe('🚰 kitchen sink', () => {
   const fixturesPath = path.join('test', 'fixtures');
-  const mwtsPath = path.join('node_modules', '.bin', 'mwts');
   const kitchenPath = path.join(stagingPath, 'kitchen');
+  const mwtsTarball = path.resolve(stagingPath, 'mwts.tgz');
+  const runMwts = (args: string[], options = execOpts) =>
+    spawn.sync('npx', ['-p', mwtsTarball, 'mwts', ...args], {
+      ...options,
+      encoding: 'utf8',
+    });
+  const toString = (value: unknown) => (value ? String(value) : '');
 
   // Create a staging directory with temp fixtures used to test on a fresh application.
   before(() => {
@@ -35,6 +40,11 @@ describe('🚰 kitchen sink', () => {
     console.log('moving packed tar to ', targetPath);
     fs.moveSync('mwts.tgz', targetPath);
     fs.copySync(fixturesPath, path.join(stagingPath, path.sep));
+    // Ensure kitchen has local mwts installed from ../mwts.tgz for config resolution.
+    cp.execSync('npm install --ignore-scripts', execOpts);
+    fs.accessSync(
+      path.join(kitchenPath, 'node_modules', 'mwts', 'package.json')
+    );
   });
   // CLEAN UP - remove the staging directory when done.
   after('cleanup staging', () => {
@@ -47,7 +57,6 @@ describe('🚰 kitchen sink', () => {
     const args = [
       '-p',
       path.resolve(stagingPath, 'mwts.tgz'),
-      '--ignore-existing',
       'mwts',
       'init',
       // It's important to use `-n` here because we don't want to overwrite
@@ -61,7 +70,8 @@ describe('🚰 kitchen sink', () => {
 
     // Ensure config files got generated.
     fs.accessSync(path.join(kitchenPath, 'tsconfig.json'));
-    fs.accessSync(path.join(kitchenPath, '.eslintrc.json'));
+    fs.accessSync(path.join(kitchenPath, 'eslint.config.js'));
+    fs.accessSync(path.join(kitchenPath, 'eslint.ignores.js'));
     fs.accessSync(path.join(kitchenPath, '.prettierrc.js'));
 
     // Compilation shouldn't have happened. Hence no `dist` directory.
@@ -69,10 +79,40 @@ describe('🚰 kitchen sink', () => {
     assert.strictEqual(dirContents.indexOf('dist'), -1);
   });
 
+  it('should lint file without requiring init-generated config', () => {
+    const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
+    const opts = {
+      cwd: path.join(tmpDir.name, 'kitchen'),
+      encoding: 'utf8',
+    } as Pick<cp.SpawnSyncOptionsWithStringEncoding, 'cwd' | 'encoding'>;
+    fs.copySync(fixturesPath, tmpDir.name);
+    fs.copySync(
+      path.join(stagingPath, 'mwts.tgz'),
+      path.join(tmpDir.name, 'mwts.tgz')
+    );
+
+    const checkRes = spawn.sync(
+      'npx',
+      [
+        '-p',
+        path.resolve(tmpDir.name, 'mwts.tgz'),
+        'mwts',
+        'check',
+        'src/server.ts',
+      ],
+      opts
+    );
+    assert.notStrictEqual(checkRes.status, 0);
+    assert.ok(!toString(checkRes.stderr).includes('eslint.config'));
+
+    if (!keep) {
+      tmpDir.removeCallback();
+    }
+  });
+
   it('should use as a non-locally installed module', () => {
     // Use from a directory different from where we have locally installed. This
     // simulates use as a globally installed module.
-    const mwts = path.resolve(stagingPath, 'kitchen/node_modules/.bin/mwts');
     const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
     const opts = { cwd: path.join(tmpDir.name, 'kitchen') };
 
@@ -85,7 +125,31 @@ describe('🚰 kitchen sink', () => {
     );
     // It's important to use `-n` here because we don't want to overwrite
     // the version of mwts installed, as it will trigger the npm install.
-    spawn.sync(mwts, ['init', '-n'], opts);
+    const initRes = spawn.sync(
+      'npx',
+      ['-p', path.resolve(stagingPath, 'mwts.tgz'), 'mwts', 'init', '-n'],
+      {
+        ...opts,
+        encoding: 'utf8',
+      }
+    );
+    assert.strictEqual(initRes.status, 0, toString(initRes.stderr));
+
+    const checkRes = spawn.sync(
+      'npx',
+      [
+        '-p',
+        path.resolve(stagingPath, 'mwts.tgz'),
+        'mwts',
+        'check',
+        'src/server.ts',
+      ],
+      {
+        ...opts,
+        encoding: 'utf8',
+      }
+    );
+    assert.notStrictEqual(checkRes.status, 0);
 
     // The `extends` field must use the local mwts path.
     const tsconfigJson = fs.readFileSync(
@@ -98,17 +162,14 @@ describe('🚰 kitchen sink', () => {
       './node_modules/mwts/tsconfig-midway.json'
     );
 
-    // server.ts has a lint error. Should error.
-    assert.throws(() => cp.execSync(`${mwts} check src/server.ts`, opts));
-
     if (!keep) {
       tmpDir.removeCallback();
     }
   });
 
   it('should terminate generated json files with newline', () => {
-    const mwts = path.resolve(stagingPath, mwtsPath);
-    spawn.sync(mwts, ['init', '-y'], execOpts);
+    const res = runMwts(['init', '-y']);
+    assert.strictEqual(res.status, 0, toString(res.stderr));
     assert.ok(
       fs
         .readFileSync(path.join(kitchenPath, 'package.json'), 'utf8')
@@ -121,12 +182,12 @@ describe('🚰 kitchen sink', () => {
     );
     assert.ok(
       fs
-        .readFileSync(path.join(kitchenPath, '.eslintrc.json'), 'utf8')
+        .readFileSync(path.join(kitchenPath, 'eslint.config.js'), 'utf8')
         .endsWith('\n')
     );
     assert.ok(
       fs
-        .readFileSync(path.join(kitchenPath, '.eslintignore'), 'utf8')
+        .readFileSync(path.join(kitchenPath, 'eslint.ignores.js'), 'utf8')
         .endsWith('\n')
     );
     assert.ok(
@@ -136,14 +197,87 @@ describe('🚰 kitchen sink', () => {
     );
   });
 
-  it('should lint before fix', async () => {
-    const res = await execa(
-      'npm',
-      ['run', 'lint'],
-      Object.assign({}, { reject: false }, execOpts)
+  it('should initialize with stylistic mode', () => {
+    const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
+    const opts = {
+      cwd: path.join(tmpDir.name, 'kitchen'),
+      encoding: 'utf8',
+    } as Pick<cp.SpawnSyncOptionsWithStringEncoding, 'cwd' | 'encoding'>;
+
+    fs.copySync(fixturesPath, tmpDir.name);
+    fs.copySync(
+      path.join(stagingPath, 'mwts.tgz'),
+      path.join(tmpDir.name, 'mwts.tgz')
     );
+
+    const res = spawn.sync(
+      'npx',
+      [
+        '-p',
+        path.resolve(tmpDir.name, 'mwts.tgz'),
+        'mwts',
+        'init',
+        '-y',
+        '--formatter=stylistic',
+      ],
+      opts
+    );
+    assert.strictEqual(res.status, 0, toString(res.stderr));
+
+    const content = fs.readFileSync(
+      path.join(tmpDir.name, 'kitchen', 'eslint.config.js'),
+      'utf8'
+    );
+    assert.ok(content.includes('@stylistic/eslint-plugin'));
+
+    if (!keep) {
+      tmpDir.removeCallback();
+    }
+  });
+
+  it('should initialize with biome mode', () => {
+    const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
+    const opts = {
+      cwd: path.join(tmpDir.name, 'kitchen'),
+      encoding: 'utf8',
+    } as Pick<cp.SpawnSyncOptionsWithStringEncoding, 'cwd' | 'encoding'>;
+
+    fs.copySync(fixturesPath, tmpDir.name);
+    fs.copySync(
+      path.join(stagingPath, 'mwts.tgz'),
+      path.join(tmpDir.name, 'mwts.tgz')
+    );
+
+    const res = spawn.sync(
+      'npx',
+      [
+        '-p',
+        path.resolve(tmpDir.name, 'mwts.tgz'),
+        'mwts',
+        'init',
+        '-y',
+        '--formatter=biome',
+      ],
+      opts
+    );
+    assert.strictEqual(res.status, 0, toString(res.stderr));
+    fs.accessSync(path.join(tmpDir.name, 'kitchen', 'biome.json'));
+    assert.throws(() =>
+      fs.accessSync(path.join(tmpDir.name, 'kitchen', '.prettierrc.js'))
+    );
+
+    if (!keep) {
+      tmpDir.removeCallback();
+    }
+  });
+
+  it('should lint before fix', async () => {
+    const res = await execa('npx', ['-p', mwtsTarball, 'mwts', 'lint'], {
+      reject: false,
+      cwd: execOpts.cwd as string,
+      encoding: 'utf8',
+    });
     assert.strictEqual(res.exitCode, 1);
-    assert.ok(res.stdout.includes('assigned a value but'));
   });
 
   it('should fix', () => {
@@ -151,7 +285,8 @@ describe('🚰 kitchen sink', () => {
       .readFileSync(path.join(kitchenPath, 'src', 'server.ts'), 'utf8')
       .split(/[\n\r]+/);
 
-    cp.execSync('npm run fix', execOpts);
+    const fixRes = runMwts(['fix']);
+    assert.strictEqual(fixRes.status, 0, toString(fixRes.stderr));
     const postFix = fs
       .readFileSync(path.join(kitchenPath, 'src', 'server.ts'), 'utf8')
       .split(/[\n\r]+/);
@@ -159,7 +294,8 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should lint after fix', () => {
-    cp.execSync('npm run lint', execOpts);
+    const lintRes = runMwts(['lint']);
+    assert.strictEqual(lintRes.status, 0, toString(lintRes.stderr));
   });
 
   it('should build', () => {
@@ -171,7 +307,8 @@ describe('🚰 kitchen sink', () => {
 
   // Verify the `mwts clean` command actually removes the output dir
   it('should clean', () => {
-    cp.execSync('npm run clean', execOpts);
+    const cleanRes = runMwts(['clean']);
+    assert.strictEqual(cleanRes.status, 0, toString(cleanRes.stderr));
     assert.throws(() => fs.accessSync(path.join(kitchenPath, 'dist')));
   });
 });

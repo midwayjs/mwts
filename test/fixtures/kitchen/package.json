@@ -2,7 +2,7 @@
   "name": "kitchen",
   "version": "1.0.0",
   "devDependencies": {
-    "typescript": "^3.8.0",
+    "typescript": "^5.6.3",
     "mwts": "file:../mwts.tgz"
   }
 }
