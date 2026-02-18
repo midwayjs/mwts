@@ -22,6 +22,14 @@ const execOpts: Pick<
 describe('🚰 kitchen sink', () => {
   const fixturesPath = path.join('test', 'fixtures');
   const kitchenPath = path.join(stagingPath, 'kitchen');
+  const kitchenCliPath = path.join(
+    kitchenPath,
+    'node_modules',
+    'mwts',
+    'dist',
+    'src',
+    'cli.js'
+  );
   const toString = (value: unknown) => (value ? String(value) : '');
 
   // Create a staging directory with temp fixtures used to test on a fresh application.
@@ -126,7 +134,7 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should terminate generated json files with newline', () => {
-    const res = spawn.sync('npm', ['exec', '--', 'mwts', 'init', '-y'], {
+    const res = spawn.sync('node', [kitchenCliPath, 'init', '-y'], {
       ...execOpts,
       encoding: 'utf8',
     });
@@ -197,7 +205,7 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should lint before fix', async () => {
-    const res = await execa('npm', ['exec', '--', 'mwts', 'lint'], {
+    const res = await execa('node', [kitchenCliPath, 'lint'], {
       reject: false,
       cwd: execOpts.cwd as string,
       encoding: 'utf8',
@@ -210,7 +218,11 @@ describe('🚰 kitchen sink', () => {
       .readFileSync(path.join(kitchenPath, 'src', 'server.ts'), 'utf8')
       .split(/[\n\r]+/);
 
-    cp.execSync('npm exec -- mwts fix', execOpts);
+    const fixRes = spawn.sync('node', [kitchenCliPath, 'fix'], {
+      ...execOpts,
+      encoding: 'utf8',
+    });
+    assert.strictEqual(fixRes.status, 0, toString(fixRes.stderr));
     const postFix = fs
       .readFileSync(path.join(kitchenPath, 'src', 'server.ts'), 'utf8')
       .split(/[\n\r]+/);
@@ -218,7 +230,11 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should lint after fix', () => {
-    cp.execSync('npm exec -- mwts lint', execOpts);
+    const lintRes = spawn.sync('node', [kitchenCliPath, 'lint'], {
+      ...execOpts,
+      encoding: 'utf8',
+    });
+    assert.strictEqual(lintRes.status, 0, toString(lintRes.stderr));
   });
 
   it('should build', () => {
@@ -230,7 +246,11 @@ describe('🚰 kitchen sink', () => {
 
   // Verify the `mwts clean` command actually removes the output dir
   it('should clean', () => {
-    cp.execSync('npm exec -- mwts clean', execOpts);
+    const cleanRes = spawn.sync('node', [kitchenCliPath, 'clean'], {
+      ...execOpts,
+      encoding: 'utf8',
+    });
+    assert.strictEqual(cleanRes.status, 0, toString(cleanRes.stderr));
     assert.throws(() => fs.accessSync(path.join(kitchenPath, 'dist')));
   });
 });
