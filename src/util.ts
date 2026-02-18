@@ -181,7 +181,10 @@ export function readJSON(filepath: string): unknown {
   } catch (exc) {
     const err = safeError(exc);
     throw new Error(
-      `Failed to parse JSON file '${content}' for: ${err.message}`
+      `Failed to parse JSON file '${content}' for: ${err.message}`,
+      {
+        cause: exc,
+      }
     );
   }
 }

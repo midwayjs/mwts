@@ -123,9 +123,9 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
   console.log(`Node.js Version: ${nodeMajorVersion}`);
   console.log(`ESLint Version: ${getEslintVersion()}`);
   console.log(`Prettier Version: ${getPrettierVersion()}`);
-  if (nodeMajorVersion < 18) {
+  if (nodeMajorVersion < 20) {
     throw new Error(
-      `mwts requires node.js 18.x or up. You are currently running
+      `mwts requires node.js 20.x or up. You are currently running
       ${process.version}, which is not supported. Please upgrade to
       a safe, secure version of nodejs!`
     );

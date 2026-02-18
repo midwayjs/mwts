@@ -250,7 +250,9 @@ async function generateConfigFile(
     if (err.code === 'ENOENT') {
       /* not found, create it. */
     } else {
-      throw new Error(`Unknown error reading ${filename}: ${err.message}`);
+      throw new Error(`Unknown error reading ${filename}: ${err.message}`, {
+        cause: exc,
+      });
     }
   }
 
@@ -347,7 +349,9 @@ export async function init(options: Options): Promise<boolean> {
   } catch (exc) {
     const err = safeError(exc);
     if (err.code !== 'ENOENT') {
-      throw new Error(`Unable to open package.json file: ${err.message}`);
+      throw new Error(`Unable to open package.json file: ${err.message}`, {
+        cause: exc,
+      });
     }
     const generate = await query(
       `${chalk.bold('package.json')} does not exist.`,

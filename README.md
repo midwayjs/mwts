@@ -75,7 +75,7 @@ Show your love for `mwts` and include a badge!
 ```
 
 ## Supported Node.js Versions
-`mwts` 2.x requires Node.js 18+.
+`mwts` 2.x requires Node.js 20+.
 
 ## Migrating from mwts 1.x to 2.x
 - Upgrade runtime/tooling baseline:
