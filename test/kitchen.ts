@@ -72,7 +72,12 @@ describe('🚰 kitchen sink', () => {
   it('should use as a non-locally installed module', () => {
     // Use from a directory different from where we have locally installed. This
     // simulates use as a globally installed module.
-    const mwts = path.resolve(stagingPath, 'kitchen', 'node_modules/.bin', mwtsBin);
+    const mwts = path.resolve(
+      stagingPath,
+      'kitchen',
+      'node_modules/.bin',
+      mwtsBin
+    );
     const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
     const opts = { cwd: path.join(tmpDir.name, 'kitchen') };
 
@@ -137,7 +142,12 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should initialize with stylistic mode', () => {
-    const mwts = path.resolve(stagingPath, 'kitchen', 'node_modules/.bin', mwtsBin);
+    const mwts = path.resolve(
+      stagingPath,
+      'kitchen',
+      'node_modules/.bin',
+      mwtsBin
+    );
     cp.execSync(`${mwts} init -y --formatter=stylistic`, execOpts);
     fs.accessSync(path.join(kitchenPath, 'eslint.config.js'));
     const content = fs.readFileSync(
