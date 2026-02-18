@@ -1,7 +1,7 @@
 #!/usr/bin/env node
+import * as fs from 'fs';
 import * as path from 'path';
 import * as meow from 'meow';
-import * as updateNotifier from 'update-notifier';
 import { init } from './init';
 import { clean } from './clean';
 import { isYarnUsed, readJSON } from './util';
@@ -9,6 +9,9 @@ import * as execa from 'execa';
 import { PackageJSON as PackageJson } from '@npm/types';
 
 const packageJson = require('../../package.json') as PackageJson;
+const updateNotifier = require('update-notifier').default as (
+  settings: unknown
+) => { notify: () => void };
 
 export interface Logger {
   log: (...args: unknown[]) => void;
@@ -117,6 +120,14 @@ function usage(msg?: string): void {
   cli.showHelp(1);
 }
 
+function hasLocalEslintConfig(targetRootDir: string): boolean {
+  return (
+    fs.existsSync(path.join(targetRootDir, 'eslint.config.js')) ||
+    fs.existsSync(path.join(targetRootDir, 'eslint.config.cjs')) ||
+    fs.existsSync(path.join(targetRootDir, 'eslint.config.mjs'))
+  );
+}
+
 export async function run(verb: string, files: string[]): Promise<boolean> {
   // throw if running on an old version of nodejs
   const nodeMajorVersion = Number(getNodeVersion().slice(1).split('.')[0]);
@@ -149,7 +160,7 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
     return init(options);
   }
 
-  const flags = Object.assign([], files);
+  const flags: string[] = [...files];
   if (flags.length === 0) {
     flags.push(
       '**/*.ts',
@@ -163,8 +174,15 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
   switch (verb) {
     case 'lint':
     case 'check': {
+      const eslintFlags = [...flags];
+      if (!hasLocalEslintConfig(options.targetRootDir)) {
+        eslintFlags.unshift(
+          '--config',
+          path.join(options.mwtsRootDir, 'eslint.config.js')
+        );
+      }
       try {
-        await execa('eslint', flags, {
+        await execa('eslint', eslintFlags, {
           stdio: 'inherit',
         });
         return true;
@@ -174,8 +192,15 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
     }
     case 'fix': {
       const fixFlag = options.dryRun ? '--fix-dry-run' : '--fix';
+      const eslintFlags = [fixFlag, ...flags];
+      if (!hasLocalEslintConfig(options.targetRootDir)) {
+        eslintFlags.unshift(
+          '--config',
+          path.join(options.mwtsRootDir, 'eslint.config.js')
+        );
+      }
       try {
-        await execa('eslint', [fixFlag, ...flags], {
+        await execa('eslint', eslintFlags, {
           stdio: 'inherit',
         });
         return true;

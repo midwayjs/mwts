@@ -79,6 +79,37 @@ describe('🚰 kitchen sink', () => {
     assert.strictEqual(dirContents.indexOf('dist'), -1);
   });
 
+  it('should lint file without requiring init-generated config', () => {
+    const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
+    const opts = {
+      cwd: path.join(tmpDir.name, 'kitchen'),
+      encoding: 'utf8',
+    } as Pick<cp.SpawnSyncOptionsWithStringEncoding, 'cwd' | 'encoding'>;
+    fs.copySync(fixturesPath, tmpDir.name);
+    fs.copySync(
+      path.join(stagingPath, 'mwts.tgz'),
+      path.join(tmpDir.name, 'mwts.tgz')
+    );
+
+    const checkRes = spawn.sync(
+      'npx',
+      [
+        '-p',
+        path.resolve(tmpDir.name, 'mwts.tgz'),
+        'mwts',
+        'check',
+        'src/server.ts',
+      ],
+      opts
+    );
+    assert.notStrictEqual(checkRes.status, 0);
+    assert.ok(!toString(checkRes.stderr).includes('eslint.config'));
+
+    if (!keep) {
+      tmpDir.removeCallback();
+    }
+  });
+
   it('should use as a non-locally installed module', () => {
     // Use from a directory different from where we have locally installed. This
     // simulates use as a globally installed module.
