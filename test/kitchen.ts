@@ -158,21 +158,41 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should initialize with stylistic mode', () => {
+    const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
+    const opts = {
+      cwd: path.join(tmpDir.name, 'kitchen'),
+      encoding: 'utf8',
+    } as Pick<cp.SpawnSyncOptionsWithStringEncoding, 'cwd' | 'encoding'>;
+
+    fs.copySync(fixturesPath, tmpDir.name);
+    fs.copySync(
+      path.join(stagingPath, 'mwts.tgz'),
+      path.join(tmpDir.name, 'mwts.tgz')
+    );
+
     const res = spawn.sync(
       'npx',
-      ['mwts', 'init', '-y', '--formatter=stylistic'],
-      {
-        ...execOpts,
-        encoding: 'utf8',
-      }
+      [
+        '-p',
+        path.resolve(tmpDir.name, 'mwts.tgz'),
+        'mwts',
+        'init',
+        '-y',
+        '--formatter=stylistic',
+      ],
+      opts
     );
     assert.strictEqual(res.status, 0, toString(res.stderr));
-    fs.accessSync(path.join(kitchenPath, 'eslint.config.js'));
+
     const content = fs.readFileSync(
-      path.join(kitchenPath, 'eslint.config.js'),
+      path.join(tmpDir.name, 'kitchen', 'eslint.config.js'),
       'utf8'
     );
     assert.ok(content.includes('@stylistic/eslint-plugin'));
+
+    if (!keep) {
+      tmpDir.removeCallback();
+    }
   });
 
   it('should lint before fix', async () => {
