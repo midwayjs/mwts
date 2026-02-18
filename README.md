@@ -23,12 +23,14 @@ The easiest way to get started is to run:
 npx mwts init
 ```
 
+Use `--formatter stylistic` to opt into `ESLint + Stylistic` instead of the default `Prettier + ESLint`.
+
 ## How it works
 When you run the `npx mwts init` command, it's going to do a few things for you:
 - Adds an opinionated `tsconfig.json` file to your project that uses the MidwayJS TypeScript Style.
 - Adds the necessary devDependencies to your `package.json`.
 - Adds scripts to your `package.json`:
-  - `check`: Lints and checks for formatting problems.
+  - `lint`/`check`: Lints and checks for formatting problems.
   - `fix`: Automatically fixes formatting and linting problems (if possible).
   - `clean`: Removes output files.
   - `build`: Compiles the source code using TypeScript compiler.
@@ -45,12 +47,12 @@ mwts check *.ts
 ```
 
 ### Working with eslint
-Under the covers, we use [eslint][eslint-url] to enforce the style guide and provide automated fixes, and [prettier][prettier-url] to re-format code. To use the shared `eslint` configuration, create an `.eslintrc` in your project directory, and extend the shared config:
+Under the covers, we use [eslint][eslint-url] to enforce the style guide and provide automated fixes, and [prettier][prettier-url] to re-format code. To use the shared `eslint` configuration, create an `eslint.config.js` in your project directory, and extend the shared config:
 
-```yml
----
-extends:
-  - './node_modules/mwts'
+```js
+module.exports = [
+  ...require('mwts'),
+];
 ```
 
 If you don't want to use the `mwts` CLI, you can drop down to using the module as a basic `eslint` config, and just use the `eslint` cli:
@@ -73,7 +75,15 @@ Show your love for `mwts` and include a badge!
 ```
 
 ## Supported Node.js Versions
-Our client libraries follow the [Node.js release schedule](https://nodejs.org/en/about/releases/). Libraries are compatible with all current _active_ and _maintenance_ versions of Node.js.
+`mwts` 2.x requires Node.js 18+.
+
+## Migrating from mwts 1.x to 2.x
+- Upgrade runtime/tooling baseline:
+  - Node.js >= 18
+  - TypeScript >= 5
+- `mwts init` now generates `eslint.config.js` and `eslint.ignores.js` (flat config), instead of `.eslintrc.json` and `.eslintignore`.
+- Default formatter mode stays `Prettier + ESLint`.
+- Optional formatter mode: `mwts init --formatter stylistic`.
 
 ## License
 [Apache-2.0](LICENSE)

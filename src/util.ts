@@ -8,7 +8,10 @@ import * as JSON5 from 'json5';
 
 export const readFilep = promisify(fs.readFile) as ReadFileP;
 export const rimrafp = promisify(rimraf);
-export const writeFileAtomicp = promisify(writeFileAtomic);
+export const writeFileAtomicp = (
+  filename: string,
+  data: string
+): Promise<void> => writeFileAtomic(filename, data);
 export const ncpp = promisify(ncp.ncp);
 
 export interface Bag<T> {
@@ -35,7 +38,7 @@ export function nop() {
 }
 
 export function safeError(err: unknown): NodeJS.ErrnoException {
-  if (err == null) {
+  if (err === null || err === undefined) {
     return new Error(`(${err})`);
   }
   if (err instanceof Error) {
@@ -115,13 +118,14 @@ async function getBase(
  */
 function combineTSConfig(base: ConfigFile, inherited: ConfigFile): ConfigFile {
   const result: ConfigFile = { compilerOptions: {} };
+  const compilerOptions = Object.assign(
+    {},
+    base.compilerOptions || {},
+    inherited.compilerOptions || {}
+  );
 
   Object.assign(result, base, inherited);
-  Object.assign(
-    result.compilerOptions,
-    base.compilerOptions,
-    inherited.compilerOptions
-  );
+  result.compilerOptions = compilerOptions;
   delete result.extends;
   return result;
 }
@@ -131,7 +135,7 @@ function combineTSConfig(base: ConfigFile, inherited: ConfigFile): ConfigFile {
  */
 export interface ConfigFile {
   files?: string[];
-  compilerOptions?: unknown;
+  compilerOptions?: Record<string, unknown>;
   include?: string[];
   exclude?: string[];
   extends?: string[] | string;

@@ -4,7 +4,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import { accessSync } from 'fs';
-import { PackageJson } from '@npm/types';
+import { PackageJSON as PackageJson } from '@npm/types';
 import { withFixtures, Fixtures } from 'inline-fixtures';
 import { describe, it, beforeEach, afterEach } from 'mocha';
 
@@ -23,6 +23,9 @@ const OPTIONS: Options = {
 const OPTIONS_YES = Object.assign({}, OPTIONS, { yes: true });
 const OPTIONS_NO = Object.assign({}, OPTIONS, { no: true });
 const OPTIONS_YARN = Object.assign({}, OPTIONS_YES, { yarn: true });
+const OPTIONS_STYLISTIC = Object.assign({}, OPTIONS_YES, {
+  formatterMode: 'stylistic',
+} as const);
 const MINIMAL_PACKAGE_JSON = { name: 'name', version: 'v1.1.1' };
 
 function hasExpectedScripts(packageJson: PackageJson): boolean {
@@ -148,7 +151,6 @@ describe('init', () => {
           'the file should have been modified'
         );
         assert.strictEqual(
-          // @ts-expect-error unrelated property
           contents.some,
           originalContents.some,
           'unrelated property should have preserved'
@@ -261,5 +263,36 @@ describe('init', () => {
         accessSync(newPath);
       });
     });
+  });
+
+  it('should generate eslint flat config files', () => {
+    return withFixtures(
+      { 'package.json': JSON.stringify({ name: 'test' }) },
+      async () => {
+        await init.init(OPTIONS_YES);
+        assert.doesNotThrow(() => {
+          accessSync('./eslint.config.js');
+          accessSync('./eslint.ignores.js');
+          accessSync('./.prettierrc.js');
+        });
+      }
+    );
+  });
+
+  it('should support stylistic formatter mode', () => {
+    return withFixtures(
+      { 'package.json': JSON.stringify({ name: 'test' }) },
+      async () => {
+        await init.init(OPTIONS_STYLISTIC);
+        const contents = (await readJson('./package.json')) as PackageJson;
+        const eslintConfig = fs.readFileSync('./eslint.config.js', 'utf8');
+        assert.ok(
+          !!contents.devDependencies &&
+            !!contents.devDependencies['@stylistic/eslint-plugin']
+        );
+        assert.ok(eslintConfig.includes('@stylistic/eslint-plugin'));
+        assert.throws(() => accessSync('./.prettierrc.js'));
+      }
+    );
   });
 });

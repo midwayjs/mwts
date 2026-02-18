@@ -8,7 +8,6 @@ import { describe, it, before, after } from 'mocha';
 
 import spawn = require('cross-spawn');
 import execa = require('execa');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pkg = require('../../package.json');
 const keep = !!process.env.mwts_KEEP_TEMPDIRS;
 const stagingDir = tmp.dirSync({ keep, unsafeCleanup: true });
@@ -47,7 +46,6 @@ describe('🚰 kitchen sink', () => {
     const args = [
       '-p',
       path.resolve(stagingPath, 'mwts.tgz'),
-      '--ignore-existing',
       'mwts',
       'init',
       // It's important to use `-n` here because we don't want to overwrite
@@ -61,7 +59,8 @@ describe('🚰 kitchen sink', () => {
 
     // Ensure config files got generated.
     fs.accessSync(path.join(kitchenPath, 'tsconfig.json'));
-    fs.accessSync(path.join(kitchenPath, '.eslintrc.json'));
+    fs.accessSync(path.join(kitchenPath, 'eslint.config.js'));
+    fs.accessSync(path.join(kitchenPath, 'eslint.ignores.js'));
     fs.accessSync(path.join(kitchenPath, '.prettierrc.js'));
 
     // Compilation shouldn't have happened. Hence no `dist` directory.
@@ -121,12 +120,12 @@ describe('🚰 kitchen sink', () => {
     );
     assert.ok(
       fs
-        .readFileSync(path.join(kitchenPath, '.eslintrc.json'), 'utf8')
+        .readFileSync(path.join(kitchenPath, 'eslint.config.js'), 'utf8')
         .endsWith('\n')
     );
     assert.ok(
       fs
-        .readFileSync(path.join(kitchenPath, '.eslintignore'), 'utf8')
+        .readFileSync(path.join(kitchenPath, 'eslint.ignores.js'), 'utf8')
         .endsWith('\n')
     );
     assert.ok(
@@ -136,12 +135,23 @@ describe('🚰 kitchen sink', () => {
     );
   });
 
-  it('should lint before fix', async () => {
-    const res = await execa(
-      'npm',
-      ['run', 'lint'],
-      Object.assign({}, { reject: false }, execOpts)
+  it('should initialize with stylistic mode', () => {
+    const mwts = path.resolve(stagingPath, 'kitchen/node_modules/.bin/mwts');
+    cp.execSync(`${mwts} init -y --formatter=stylistic`, execOpts);
+    fs.accessSync(path.join(kitchenPath, 'eslint.config.js'));
+    const content = fs.readFileSync(
+      path.join(kitchenPath, 'eslint.config.js'),
+      'utf8'
     );
+    assert.ok(content.includes('@stylistic/eslint-plugin'));
+  });
+
+  it('should lint before fix', async () => {
+    const res = await execa('npm', ['run', 'lint'], {
+      reject: false,
+      cwd: execOpts.cwd as string,
+      encoding: 'utf8',
+    });
     assert.strictEqual(res.exitCode, 1);
     assert.ok(res.stdout.includes('assigned a value but'));
   });

@@ -6,11 +6,9 @@ import { init } from './init';
 import { clean } from './clean';
 import { isYarnUsed, readJSON } from './util';
 import * as execa from 'execa';
-import { PackageJson } from '@npm/types';
+import { PackageJSON as PackageJson } from '@npm/types';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson = require('../../package.json') as PackageJson;
-const eslint = require.resolve('eslint/bin/eslint');
 
 export interface Logger {
   log: (...args: unknown[]) => void;
@@ -26,7 +24,10 @@ export interface Options {
   no: boolean;
   logger: Logger;
   yarn?: boolean;
+  formatterMode?: FormatterMode;
 }
+
+export type FormatterMode = 'prettier' | 'stylistic';
 
 export type VerbFilesFunction = (
   options: Options,
@@ -54,6 +55,7 @@ const cli = meow({
     -n, --no      Assume a no answer for every prompt.
     --dry-run     Don't make any actual changes.
     --yarn        Use yarn instead of npm.
+    --formatter   Formatter strategy: prettier (default) or stylistic.
 
 	Examples
     $ mwts init -y
@@ -67,6 +69,7 @@ const cli = meow({
     no: { type: 'boolean', alias: 'n' },
     dryRun: { type: 'boolean' },
     yarn: { type: 'boolean' },
+    formatter: { type: 'string' },
   },
 });
 
@@ -93,6 +96,20 @@ export function getPrettierVersion(): string {
   return packageJson.version;
 }
 
+function parseFormatterMode(value: unknown): FormatterMode | undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (value === 'prettier' || value === 'stylistic') {
+    return value;
+  }
+  throw new Error(
+    `Unsupported formatter mode '${String(
+      value
+    )}'. Use 'prettier' or 'stylistic'.`
+  );
+}
+
 function usage(msg?: string): void {
   if (msg) {
     logger.error(msg);
@@ -106,9 +123,9 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
   console.log(`Node.js Version: ${nodeMajorVersion}`);
   console.log(`ESLint Version: ${getEslintVersion()}`);
   console.log(`Prettier Version: ${getPrettierVersion()}`);
-  if (nodeMajorVersion < 10) {
+  if (nodeMajorVersion < 18) {
     throw new Error(
-      `mwts requires node.js 10.x or up. You are currently running
+      `mwts requires node.js 18.x or up. You are currently running
       ${process.version}, which is not supported. Please upgrade to
       a safe, secure version of nodejs!`
     );
@@ -123,6 +140,7 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
     no: cli.flags.no || cli.flags.n || false,
     logger,
     yarn: cli.flags.yarn || isYarnUsed(),
+    formatterMode: parseFormatterMode(cli.flags.formatter),
   } as Options;
   // Linting/formatting depend on typescript. We don't want to load the
   // typescript module during init, since it might not exist.
@@ -146,18 +164,18 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
     case 'lint':
     case 'check': {
       try {
-        await execa('node', [eslint, ...flags], {
+        await execa('eslint', flags, {
           stdio: 'inherit',
         });
         return true;
-      } catch (e) {
+      } catch {
         return false;
       }
     }
     case 'fix': {
       const fixFlag = options.dryRun ? '--fix-dry-run' : '--fix';
       try {
-        await execa('node', [eslint, fixFlag, ...flags], {
+        await execa('eslint', [fixFlag, ...flags], {
           stdio: 'inherit',
         });
         return true;
@@ -180,9 +198,13 @@ if (cli.input.length < 1) {
   usage();
 }
 
-run(cli.input[0], cli.input.slice(1)).then(success => {
-  if (!success) {
-    // eslint-disable-next-line no-process-exit
+run(cli.input[0], cli.input.slice(1))
+  .then(success => {
+    if (!success) {
+      process.exit(1);
+    }
+  })
+  .catch(e => {
+    console.error(e);
     process.exit(1);
-  }
-});
+  });
