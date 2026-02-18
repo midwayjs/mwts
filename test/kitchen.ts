@@ -235,6 +235,42 @@ describe('🚰 kitchen sink', () => {
     }
   });
 
+  it('should initialize with biome mode', () => {
+    const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
+    const opts = {
+      cwd: path.join(tmpDir.name, 'kitchen'),
+      encoding: 'utf8',
+    } as Pick<cp.SpawnSyncOptionsWithStringEncoding, 'cwd' | 'encoding'>;
+
+    fs.copySync(fixturesPath, tmpDir.name);
+    fs.copySync(
+      path.join(stagingPath, 'mwts.tgz'),
+      path.join(tmpDir.name, 'mwts.tgz')
+    );
+
+    const res = spawn.sync(
+      'npx',
+      [
+        '-p',
+        path.resolve(tmpDir.name, 'mwts.tgz'),
+        'mwts',
+        'init',
+        '-y',
+        '--formatter=biome',
+      ],
+      opts
+    );
+    assert.strictEqual(res.status, 0, toString(res.stderr));
+    fs.accessSync(path.join(tmpDir.name, 'kitchen', 'biome.json'));
+    assert.throws(() =>
+      fs.accessSync(path.join(tmpDir.name, 'kitchen', '.prettierrc.js'))
+    );
+
+    if (!keep) {
+      tmpDir.removeCallback();
+    }
+  });
+
   it('should lint before fix', async () => {
     const res = await execa('npx', ['-p', mwtsTarball, 'mwts', 'lint'], {
       reject: false,

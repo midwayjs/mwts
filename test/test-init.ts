@@ -26,6 +26,9 @@ const OPTIONS_YARN = Object.assign({}, OPTIONS_YES, { yarn: true });
 const OPTIONS_STYLISTIC = Object.assign({}, OPTIONS_YES, {
   formatterMode: 'stylistic',
 } as const);
+const OPTIONS_BIOME = Object.assign({}, OPTIONS_YES, {
+  formatterMode: 'biome',
+} as const);
 const MINIMAL_PACKAGE_JSON = { name: 'name', version: 'v1.1.1' };
 
 function hasExpectedScripts(packageJson: PackageJson): boolean {
@@ -291,6 +294,24 @@ describe('init', () => {
             !!contents.devDependencies['@stylistic/eslint-plugin']
         );
         assert.ok(eslintConfig.includes('@stylistic/eslint-plugin'));
+        assert.throws(() => accessSync('./.prettierrc.js'));
+      }
+    );
+  });
+
+  it('should support biome formatter mode', () => {
+    return withFixtures(
+      { 'package.json': JSON.stringify({ name: 'test' }) },
+      async () => {
+        await init.init(OPTIONS_BIOME);
+        const contents = (await readJson('./package.json')) as PackageJson;
+        const eslintConfig = fs.readFileSync('./eslint.config.js', 'utf8');
+        assert.ok(
+          !!contents.devDependencies &&
+            !!contents.devDependencies['@biomejs/biome']
+        );
+        assert.ok(eslintConfig.includes("'prettier/prettier': 'off'"));
+        assert.doesNotThrow(() => accessSync('./biome.json'));
         assert.throws(() => accessSync('./.prettierrc.js'));
       }
     );

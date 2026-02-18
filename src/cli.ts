@@ -30,7 +30,7 @@ export interface Options {
   formatterMode?: FormatterMode;
 }
 
-export type FormatterMode = 'prettier' | 'stylistic';
+export type FormatterMode = 'prettier' | 'stylistic' | 'biome';
 
 export type VerbFilesFunction = (
   options: Options,
@@ -58,7 +58,7 @@ const cli = meow({
     -n, --no      Assume a no answer for every prompt.
     --dry-run     Don't make any actual changes.
     --yarn        Use yarn instead of npm.
-    --formatter   Formatter strategy: prettier (default) or stylistic.
+    --formatter   Formatter strategy: prettier (default), stylistic, or biome.
 
 	Examples
     $ mwts init -y
@@ -103,14 +103,18 @@ function parseFormatterMode(value: unknown): FormatterMode | undefined {
   if (value === null || value === undefined) {
     return undefined;
   }
-  if (value === 'prettier' || value === 'stylistic') {
+  if (value === 'prettier' || value === 'stylistic' || value === 'biome') {
     return value;
   }
   throw new Error(
     `Unsupported formatter mode '${String(
       value
-    )}'. Use 'prettier' or 'stylistic'.`
+    )}'. Use 'prettier', 'stylistic', or 'biome'.`
   );
+}
+
+function hasLocalBiomeConfig(targetRootDir: string): boolean {
+  return fs.existsSync(path.join(targetRootDir, 'biome.json'));
 }
 
 function usage(msg?: string): void {
@@ -191,6 +195,19 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
       }
     }
     case 'fix': {
+      const fixTargets = files.length === 0 ? ['.'] : files;
+      if (hasLocalBiomeConfig(options.targetRootDir)) {
+        try {
+          const biomeFlags = ['format', '--write', ...fixTargets];
+          await execa('biome', biomeFlags, {
+            stdio: 'inherit',
+          });
+          return true;
+        } catch (e) {
+          console.error(e);
+          return false;
+        }
+      }
       const fixFlag = options.dryRun ? '--fix-dry-run' : '--fix';
       const eslintFlags = [fixFlag, ...flags];
       if (!hasLocalEslintConfig(options.targetRootDir)) {

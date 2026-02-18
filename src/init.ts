@@ -87,6 +87,50 @@ module.exports = [
 ];
 `;
 
+const ESLINT_BIOME_CONFIG = `let customConfig = [];
+let hasIgnoresFile = false;
+try {
+  require.resolve('./eslint.ignores.js');
+  hasIgnoresFile = true;
+} catch {
+  // eslint.ignores.js doesn't exist
+}
+
+if (hasIgnoresFile) {
+  const ignores = require('./eslint.ignores.js');
+  customConfig = [{ ignores }];
+}
+
+module.exports = [
+  ...customConfig,
+  ...require('mwts'),
+  {
+    rules: {
+      'prettier/prettier': 'off',
+    },
+  },
+];
+`;
+
+const BIOME_CONFIG = `{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "asNeeded"
+    }
+  }
+}
+`;
+
 export const ESLINT_IGNORE = "module.exports = ['dist/', '**/node_modules/']\n";
 
 function getFormatterMode(options: Options): FormatterMode {
@@ -214,6 +258,25 @@ export async function addDependencies(
     }
   }
 
+  if (getFormatterMode(options) === 'biome') {
+    const dep = '@biomejs/biome';
+    const target = '^1.9.4';
+    let install = true;
+    const existing = packageJson.devDependencies[dep];
+    if (existing !== target) {
+      if (existing) {
+        const message =
+          `Already have devDependency for ${chalk.bold(dep)}:\n` +
+          `-${chalk.red(existing)}\n+${chalk.green(target)}`;
+        install = await query(message, 'Overwrite', false, options);
+      }
+      if (install) {
+        packageJson.devDependencies[dep] = target;
+        edits = true;
+      }
+    }
+  }
+
   return edits;
 }
 
@@ -281,7 +344,11 @@ async function generateConfigFile(
 async function generateESLintConfig(options: Options): Promise<void> {
   const formatterMode = getFormatterMode(options);
   const config =
-    formatterMode === 'stylistic' ? ESLINT_STYLISTIC_CONFIG : ESLINT_CONFIG;
+    formatterMode === 'stylistic'
+      ? ESLINT_STYLISTIC_CONFIG
+      : formatterMode === 'biome'
+        ? ESLINT_BIOME_CONFIG
+        : ESLINT_CONFIG;
   return generateConfigFile(options, './eslint.config.js', config);
 }
 
@@ -299,7 +366,10 @@ async function generateTsConfig(options: Options): Promise<void> {
 }
 
 async function generatePrettierConfig(options: Options): Promise<void> {
-  if (getFormatterMode(options) === 'stylistic') {
+  if (
+    getFormatterMode(options) === 'stylistic' ||
+    getFormatterMode(options) === 'biome'
+  ) {
     return;
   }
   const style = `module.exports = {
@@ -307,6 +377,13 @@ async function generatePrettierConfig(options: Options): Promise<void> {
 };
 `;
   return generateConfigFile(options, './.prettierrc.js', style);
+}
+
+async function generateBiomeConfig(options: Options): Promise<void> {
+  if (getFormatterMode(options) !== 'biome') {
+    return;
+  }
+  return generateConfigFile(options, './biome.json', BIOME_CONFIG + '\n');
 }
 
 export async function installDefaultTemplate(
@@ -384,6 +461,7 @@ export async function init(options: Options): Promise<boolean> {
     generateESLintConfig(options),
     generateESLintIgnore(options),
     generatePrettierConfig(options),
+    generateBiomeConfig(options),
   ]);
   await installDefaultTemplate(options);
 

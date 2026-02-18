@@ -24,6 +24,7 @@ npx mwts init
 ```
 
 Use `--formatter stylistic` to opt into `ESLint + Stylistic` instead of the default `Prettier + ESLint`.
+Use `--formatter biome` to use Biome as formatter while keeping mwts lint/check commands.
 
 ## How it works
 When you run the `npx mwts init` command, it's going to do a few things for you:
@@ -48,6 +49,27 @@ mwts check *.ts
 
 `mwts lint/check/fix` all support file arguments.
 If you run them without `mwts init`, mwts will fall back to its built-in default ESLint config.
+
+### Custom formatter example (Biome)
+`mwts` ships built-in presets for default Prettier mode and optional Stylistic mode.
+If you want another formatter, install and wire it in your project yourself.
+
+Example:
+
+```sh
+npm i -D @biomejs/biome
+```
+
+```json
+{
+  "scripts": {
+    "format": "biome format --write .",
+    "check:format": "biome check ."
+  }
+}
+```
+
+You can keep `mwts lint/check/fix` for linting and use Biome only for formatting.
 
 ### Working with eslint
 Under the covers, we use [eslint][eslint-url] to enforce the style guide and provide automated fixes, and [prettier][prettier-url] to re-format code. To use the shared `eslint` configuration, create an `eslint.config.js` in your project directory, and extend the shared config:
@@ -87,6 +109,7 @@ Show your love for `mwts` and include a badge!
 - `mwts init` now generates `eslint.config.js` and `eslint.ignores.js` (flat config), instead of `.eslintrc.json` and `.eslintignore`.
 - Default formatter mode stays `Prettier + ESLint`.
 - Optional formatter mode: `mwts init --formatter stylistic`.
+- Optional formatter mode: `mwts init --formatter biome`.
 - `mwts lint/check/fix` support per-file arguments and can run without `mwts init` by falling back to mwts built-in config.
 
 ## License
