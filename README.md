@@ -46,6 +46,9 @@ mwts check one.ts two.ts three.ts
 mwts check *.ts
 ```
 
+`mwts lint/check/fix` all support file arguments.
+If you run them without `mwts init`, mwts will fall back to its built-in default ESLint config.
+
 ### Working with eslint
 Under the covers, we use [eslint][eslint-url] to enforce the style guide and provide automated fixes, and [prettier][prettier-url] to re-format code. To use the shared `eslint` configuration, create an `eslint.config.js` in your project directory, and extend the shared config:
 
