@@ -24,6 +24,7 @@ describe('🚰 kitchen sink', () => {
   const mwtsBin = process.platform === 'win32' ? 'mwts.cmd' : 'mwts';
   const mwtsPath = path.join('node_modules', '.bin', mwtsBin);
   const kitchenPath = path.join(stagingPath, 'kitchen');
+  const toString = (value: unknown) => (value ? String(value) : '');
 
   // Create a staging directory with temp fixtures used to test on a fresh application.
   before(() => {
@@ -72,12 +73,6 @@ describe('🚰 kitchen sink', () => {
   it('should use as a non-locally installed module', () => {
     // Use from a directory different from where we have locally installed. This
     // simulates use as a globally installed module.
-    const mwts = path.resolve(
-      stagingPath,
-      'kitchen',
-      'node_modules/.bin',
-      mwtsBin
-    );
     const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
     const opts = { cwd: path.join(tmpDir.name, 'kitchen') };
 
@@ -90,7 +85,31 @@ describe('🚰 kitchen sink', () => {
     );
     // It's important to use `-n` here because we don't want to overwrite
     // the version of mwts installed, as it will trigger the npm install.
-    spawn.sync(mwts, ['init', '-n'], opts);
+    const initRes = spawn.sync(
+      'npx',
+      ['-p', path.resolve(stagingPath, 'mwts.tgz'), 'mwts', 'init', '-n'],
+      {
+        ...opts,
+        encoding: 'utf8',
+      }
+    );
+    assert.strictEqual(initRes.status, 0, toString(initRes.stderr));
+
+    const checkRes = spawn.sync(
+      'npx',
+      [
+        '-p',
+        path.resolve(stagingPath, 'mwts.tgz'),
+        'mwts',
+        'check',
+        'src/server.ts',
+      ],
+      {
+        ...opts,
+        encoding: 'utf8',
+      }
+    );
+    assert.notStrictEqual(checkRes.status, 0);
 
     // The `extends` field must use the local mwts path.
     const tsconfigJson = fs.readFileSync(
@@ -102,9 +121,6 @@ describe('🚰 kitchen sink', () => {
       tsconfig.extends,
       './node_modules/mwts/tsconfig-midway.json'
     );
-
-    // server.ts has a lint error. Should error.
-    assert.throws(() => cp.execSync(`${mwts} check src/server.ts`, opts));
 
     if (!keep) {
       tmpDir.removeCallback();
@@ -142,13 +158,15 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should initialize with stylistic mode', () => {
-    const mwts = path.resolve(
-      stagingPath,
-      'kitchen',
-      'node_modules/.bin',
-      mwtsBin
+    const res = spawn.sync(
+      'npx',
+      ['mwts', 'init', '-y', '--formatter=stylistic'],
+      {
+        ...execOpts,
+        encoding: 'utf8',
+      }
     );
-    cp.execSync(`${mwts} init -y --formatter=stylistic`, execOpts);
+    assert.strictEqual(res.status, 0, toString(res.stderr));
     fs.accessSync(path.join(kitchenPath, 'eslint.config.js'));
     const content = fs.readFileSync(
       path.join(kitchenPath, 'eslint.config.js'),
