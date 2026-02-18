@@ -48,9 +48,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install && npm install codecov
+      - run: npm install
       - run: npm test
-      - run: npm run codecov
-      - uses: codecov/codecov-action@v1
+      - run: npx c8 report --reporter=lcov --reporter=json
+      - uses: codecov/codecov-action@v4
         with:
+          files: ./coverage/lcov.info,./coverage/coverage-final.json
           token: ${{ secrets.CODECOV_TOKEN }}
