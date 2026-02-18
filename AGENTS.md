@@ -23,7 +23,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 - 包名：`mwts`
 - 目标：提供 MidwayJS 风格的 TypeScript 工程规范与 CLI（`init` / `lint` / `fix` / `clean`）。
 - 运行时：Node.js，TypeScript 编译到 `dist/` 后执行。
-- 基于原有的 https://github.com/google/gts 来封装和实现。
+- 设计与实现思路来源于 https://github.com/google/gts，但本项目不直接依赖 `gts` 包。
 
 ## 目录与职责
 - `src/cli.ts`：CLI 入口与命令分发。

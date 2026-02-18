@@ -62,6 +62,7 @@ Its goal is to make TypeScript project setup and code quality enforcement consis
 - This package is both:
   - a CLI tool end-users run directly (`npx mwts init`)
   - a shareable lint/style config consumed by other projects
+- The project follows gts-inspired design and ecosystem alignment, but does not directly depend on the `gts` npm package.
 - Backward compatibility of generated project files and CLI flags matters because `mwts` is used to bootstrap external repositories.
 - `check` is intentionally kept as an alias for `lint` for compatibility.
 

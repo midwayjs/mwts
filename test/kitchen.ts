@@ -40,6 +40,11 @@ describe('🚰 kitchen sink', () => {
     console.log('moving packed tar to ', targetPath);
     fs.moveSync('mwts.tgz', targetPath);
     fs.copySync(fixturesPath, path.join(stagingPath, path.sep));
+    // Ensure kitchen has local mwts installed from ../mwts.tgz for config resolution.
+    cp.execSync('npm install --ignore-scripts', execOpts);
+    fs.accessSync(
+      path.join(kitchenPath, 'node_modules', 'mwts', 'package.json')
+    );
   });
   // CLEAN UP - remove the staging directory when done.
   after('cleanup staging', () => {
