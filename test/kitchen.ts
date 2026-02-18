@@ -22,14 +22,12 @@ const execOpts: Pick<
 describe('🚰 kitchen sink', () => {
   const fixturesPath = path.join('test', 'fixtures');
   const kitchenPath = path.join(stagingPath, 'kitchen');
-  const kitchenCliPath = path.join(
-    kitchenPath,
-    'node_modules',
-    'mwts',
-    'dist',
-    'src',
-    'cli.js'
-  );
+  const mwtsTarball = path.resolve(stagingPath, 'mwts.tgz');
+  const runMwts = (args: string[], options = execOpts) =>
+    spawn.sync('npx', ['-p', mwtsTarball, 'mwts', ...args], {
+      ...options,
+      encoding: 'utf8',
+    });
   const toString = (value: unknown) => (value ? String(value) : '');
 
   // Create a staging directory with temp fixtures used to test on a fresh application.
@@ -134,10 +132,7 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should terminate generated json files with newline', () => {
-    const res = spawn.sync('node', [kitchenCliPath, 'init', '-y'], {
-      ...execOpts,
-      encoding: 'utf8',
-    });
+    const res = runMwts(['init', '-y']);
     assert.strictEqual(res.status, 0, toString(res.stderr));
     assert.ok(
       fs
@@ -205,7 +200,7 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should lint before fix', async () => {
-    const res = await execa('node', [kitchenCliPath, 'lint'], {
+    const res = await execa('npx', ['-p', mwtsTarball, 'mwts', 'lint'], {
       reject: false,
       cwd: execOpts.cwd as string,
       encoding: 'utf8',
@@ -218,10 +213,7 @@ describe('🚰 kitchen sink', () => {
       .readFileSync(path.join(kitchenPath, 'src', 'server.ts'), 'utf8')
       .split(/[\n\r]+/);
 
-    const fixRes = spawn.sync('node', [kitchenCliPath, 'fix'], {
-      ...execOpts,
-      encoding: 'utf8',
-    });
+    const fixRes = runMwts(['fix']);
     assert.strictEqual(fixRes.status, 0, toString(fixRes.stderr));
     const postFix = fs
       .readFileSync(path.join(kitchenPath, 'src', 'server.ts'), 'utf8')
@@ -230,10 +222,7 @@ describe('🚰 kitchen sink', () => {
   });
 
   it('should lint after fix', () => {
-    const lintRes = spawn.sync('node', [kitchenCliPath, 'lint'], {
-      ...execOpts,
-      encoding: 'utf8',
-    });
+    const lintRes = runMwts(['lint']);
     assert.strictEqual(lintRes.status, 0, toString(lintRes.stderr));
   });
 
@@ -246,10 +235,7 @@ describe('🚰 kitchen sink', () => {
 
   // Verify the `mwts clean` command actually removes the output dir
   it('should clean', () => {
-    const cleanRes = spawn.sync('node', [kitchenCliPath, 'clean'], {
-      ...execOpts,
-      encoding: 'utf8',
-    });
+    const cleanRes = runMwts(['clean']);
     assert.strictEqual(cleanRes.status, 0, toString(cleanRes.stderr));
     assert.throws(() => fs.accessSync(path.join(kitchenPath, 'dist')));
   });
