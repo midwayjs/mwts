@@ -26,6 +26,12 @@ npx mwts init
 Use `--formatter stylistic` to opt into `ESLint + Stylistic` instead of the default `Prettier + ESLint`.
 Use `--formatter biome` to use Biome as formatter while keeping mwts lint/check commands.
 
+For legacy mwts 1.x projects, run:
+
+```sh
+npx mwts migrate
+```
+
 ## How it works
 When you run the `npx mwts init` command, it's going to do a few things for you:
 - Adds an opinionated `tsconfig.json` file to your project that uses the MidwayJS TypeScript Style.
@@ -116,6 +122,7 @@ Show your love for `mwts` and include a badge!
 - Optional formatter mode: `mwts init --formatter stylistic`.
 - Optional formatter mode: `mwts init --formatter biome`.
 - `mwts lint/check/fix` support per-file arguments and can run without `mwts init` by falling back to mwts built-in config.
+- You can run `mwts migrate` once to generate a flat `eslint.config.js` from legacy `.eslintrc.json`.
 
 ## License
 [Apache-2.0](LICENSE)
