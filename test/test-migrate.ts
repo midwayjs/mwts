@@ -39,15 +39,12 @@ describe('migrate', () => {
           'utf8'
         );
         assert.ok(eslintConfig.includes("require('mwts/eslint.config.js')"));
-        assert.ok(eslintConfig.includes('const { project, projectService'));
         assert.ok(
           eslintConfig.includes("ignores: ['dist/', '**/node_modules/',")
         );
         assert.ok(eslintConfig.includes("'packages/version'"));
         assert.ok(eslintConfig.includes("'site'"));
-        assert.ok(
-          eslintConfig.includes('@typescript-eslint/no-floating-promises')
-        );
+        assert.ok(eslintConfig.includes('...mwtsConfig'));
         assert.ok(eslintConfig.includes('no-control-regex'));
         assert.ok(eslintConfig.includes('const legacyEnv = {'));
         assert.ok(eslintConfig.includes('"jest": true'));

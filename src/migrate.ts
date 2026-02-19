@@ -61,13 +61,6 @@ function buildMigratedEslintConfig(
 const globals = require('globals');
 
 const legacyRules = ${rulesConfig};
-if (!Object.prototype.hasOwnProperty.call(
-  legacyRules,
-  '@typescript-eslint/no-floating-promises'
-)) {
-  legacyRules['@typescript-eslint/no-floating-promises'] = 'off';
-}
-
 const legacyEnv = ${envConfig};
 const legacyGlobals = Object.entries(legacyEnv).reduce((acc, [name, enabled]) => {
   if (!enabled || !globals[name]) {
@@ -76,27 +69,11 @@ const legacyGlobals = Object.entries(legacyEnv).reduce((acc, [name, enabled]) =>
   return { ...acc, ...globals[name] };
 }, {});
 
-const compatConfig = mwtsConfig.map(config => {
-  const parserOptions = config?.languageOptions?.parserOptions;
-  if (!parserOptions) {
-    return config;
-  }
-  const { project, projectService, ...nextParserOptions } = parserOptions;
-
-  return {
-    ...config,
-    languageOptions: {
-      ...config.languageOptions,
-      parserOptions: nextParserOptions,
-    },
-  };
-});
-
 module.exports = [
   {
     ignores: ${ignoreList.trim()},
   },
-  ...compatConfig,
+  ...mwtsConfig,
   {
     languageOptions: {
       globals: legacyGlobals,
