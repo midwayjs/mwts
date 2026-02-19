@@ -1,4 +1,10 @@
 
+2.0.2 / 2026-02-19
+==================
+
+  * fix: invoke eslint via node to avoid PATH lookup failures (#21)
+  * chore: bump version
+
 2.0.1 / 2026-02-19
 ==================
 
