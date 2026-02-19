@@ -102,6 +102,11 @@ export function getPrettierVersion(): string {
   return packageJson.version;
 }
 
+function getEslintBinPath(): string {
+  const eslintPackageJsonPath = require.resolve('eslint/package.json');
+  return path.join(path.dirname(eslintPackageJsonPath), 'bin', 'eslint.js');
+}
+
 function parseFormatterMode(value: unknown): FormatterMode | undefined {
   if (value === null || value === undefined) {
     return undefined;
@@ -200,11 +205,12 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
       const resolvedEslintConfig =
         findNearestEslintConfig(options.targetRootDir) ||
         path.join(options.mwtsRootDir, 'eslint.config.js');
+      const eslintBinPath = getEslintBinPath();
       if (resolvedEslintConfig) {
         eslintFlags.unshift('--config', resolvedEslintConfig);
       }
       try {
-        await execa('eslint', eslintFlags, {
+        await execa('node', [eslintBinPath, ...eslintFlags], {
           stdio: 'inherit',
         });
         return true;
@@ -231,11 +237,12 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
       const resolvedEslintConfig =
         findNearestEslintConfig(options.targetRootDir) ||
         path.join(options.mwtsRootDir, 'eslint.config.js');
+      const eslintBinPath = getEslintBinPath();
       if (resolvedEslintConfig) {
         eslintFlags.unshift('--config', resolvedEslintConfig);
       }
       try {
-        await execa('eslint', eslintFlags, {
+        await execa('node', [eslintBinPath, ...eslintFlags], {
           stdio: 'inherit',
         });
         return true;
