@@ -35,41 +35,20 @@ const DEFAULT_PACKAGE_JSON: PackageJson = {
   scripts: { test: 'echo "Error: no test specified" && exit 1' },
 };
 
-const ESLINT_CONFIG = `let customConfig = [];
-let hasIgnoresFile = false;
-try {
-  require.resolve('./eslint.ignores.js');
-  hasIgnoresFile = true;
-} catch {
-  // eslint.ignores.js doesn't exist
-}
-
-if (hasIgnoresFile) {
-  const ignores = require('./eslint.ignores.js');
-  customConfig = [{ ignores }];
-}
-
-module.exports = [...customConfig, ...require('mwts')];
+const ESLINT_CONFIG = `module.exports = [
+  {
+    ignores: ['dist/', '**/node_modules/'],
+  },
+  ...require('mwts'),
+];
 `;
 
 const ESLINT_STYLISTIC_CONFIG = `const stylistic = require('@stylistic/eslint-plugin');
 
-let customConfig = [];
-let hasIgnoresFile = false;
-try {
-  require.resolve('./eslint.ignores.js');
-  hasIgnoresFile = true;
-} catch {
-  // eslint.ignores.js doesn't exist
-}
-
-if (hasIgnoresFile) {
-  const ignores = require('./eslint.ignores.js');
-  customConfig = [{ ignores }];
-}
-
 module.exports = [
-  ...customConfig,
+  {
+    ignores: ['dist/', '**/node_modules/'],
+  },
   ...require('mwts'),
   {
     plugins: {
@@ -87,22 +66,11 @@ module.exports = [
 ];
 `;
 
-const ESLINT_BIOME_CONFIG = `let customConfig = [];
-let hasIgnoresFile = false;
-try {
-  require.resolve('./eslint.ignores.js');
-  hasIgnoresFile = true;
-} catch {
-  // eslint.ignores.js doesn't exist
-}
-
-if (hasIgnoresFile) {
-  const ignores = require('./eslint.ignores.js');
-  customConfig = [{ ignores }];
-}
-
+const ESLINT_BIOME_CONFIG = `
 module.exports = [
-  ...customConfig,
+  {
+    ignores: ['dist/', '**/node_modules/'],
+  },
   ...require('mwts'),
   {
     rules: {
@@ -130,8 +98,6 @@ const BIOME_CONFIG = `{
   }
 }
 `;
-
-export const ESLINT_IGNORE = "module.exports = ['dist/', '**/node_modules/']\n";
 
 function getFormatterMode(options: Options): FormatterMode {
   return options.formatterMode || 'prettier';
@@ -352,10 +318,6 @@ async function generateESLintConfig(options: Options): Promise<void> {
   return generateConfigFile(options, './eslint.config.js', config);
 }
 
-async function generateESLintIgnore(options: Options): Promise<void> {
-  return generateConfigFile(options, './eslint.ignores.js', ESLINT_IGNORE);
-}
-
 async function generateTsConfig(options: Options): Promise<void> {
   const config = formatJson({
     extends: './node_modules/mwts/tsconfig-midway.json',
@@ -459,7 +421,6 @@ export async function init(options: Options): Promise<boolean> {
   await Promise.all([
     generateTsConfig(options),
     generateESLintConfig(options),
-    generateESLintIgnore(options),
     generatePrettierConfig(options),
     generateBiomeConfig(options),
   ]);

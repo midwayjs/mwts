@@ -71,7 +71,6 @@ describe('🚰 kitchen sink', () => {
     // Ensure config files got generated.
     fs.accessSync(path.join(kitchenPath, 'tsconfig.json'));
     fs.accessSync(path.join(kitchenPath, 'eslint.config.js'));
-    fs.accessSync(path.join(kitchenPath, 'eslint.ignores.js'));
     fs.accessSync(path.join(kitchenPath, '.prettierrc.js'));
 
     // Compilation shouldn't have happened. Hence no `dist` directory.
@@ -223,11 +222,6 @@ describe('🚰 kitchen sink', () => {
     assert.ok(
       fs
         .readFileSync(path.join(kitchenPath, 'eslint.config.js'), 'utf8')
-        .endsWith('\n')
-    );
-    assert.ok(
-      fs
-        .readFileSync(path.join(kitchenPath, 'eslint.ignores.js'), 'utf8')
         .endsWith('\n')
     );
     assert.ok(

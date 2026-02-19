@@ -117,7 +117,7 @@ Show your love for `mwts` and include a badge!
 - Upgrade runtime/tooling baseline:
   - Node.js >= 20
   - TypeScript >= 5
-- `mwts init` now generates `eslint.config.js` and `eslint.ignores.js` (flat config), instead of `.eslintrc.json` and `.eslintignore`.
+- `mwts init` now generates `eslint.config.js` (flat config), instead of `.eslintrc.json` / `.eslintignore`.
 - Default formatter mode stays `Prettier + ESLint`.
 - Optional formatter mode: `mwts init --formatter stylistic`.
 - Optional formatter mode: `mwts init --formatter biome`.

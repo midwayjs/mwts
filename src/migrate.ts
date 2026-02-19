@@ -4,53 +4,7 @@ import * as path from 'path';
 import { Options } from './cli';
 import { safeError } from './util';
 
-const MIGRATED_ESLINT_CONFIG = `let customConfig = [];
-let hasIgnoresFile = false;
-try {
-  require.resolve('./eslint.ignores.js');
-  hasIgnoresFile = true;
-} catch {
-  // eslint.ignores.js doesn't exist
-}
-
-if (hasIgnoresFile) {
-  const ignores = require('./eslint.ignores.js');
-  customConfig = [{ ignores }];
-}
-
-const mwtsConfig = require('mwts/eslint.config.js');
-
-const compatConfig = mwtsConfig.map(config => {
-  const parserOptions = config?.languageOptions?.parserOptions;
-  if (!parserOptions) {
-    return config;
-  }
-
-  const nextParserOptions = {
-    ...parserOptions,
-  };
-  delete nextParserOptions.project;
-  delete nextParserOptions.projectService;
-
-  return {
-    ...config,
-    languageOptions: {
-      ...config.languageOptions,
-      parserOptions: nextParserOptions,
-    },
-  };
-});
-
-module.exports = [
-  ...customConfig,
-  ...compatConfig,
-  {
-    rules: {
-      '@typescript-eslint/no-floating-promises': 'off',
-    },
-  },
-];
-`;
+const DEFAULT_ESLINT_IGNORES = ['dist/', '**/node_modules/'];
 
 function parseIgnorePatterns(contents: string): string[] {
   return contents
@@ -62,6 +16,43 @@ function parseIgnorePatterns(contents: string): string[] {
 function formatIgnoreConfig(patterns: string[]): string {
   const escaped = patterns.map(pattern => `'${pattern.replace(/'/gu, "\\'")}'`);
   return `module.exports = [${escaped.join(', ')}]\n`;
+}
+
+function buildMigratedEslintConfig(ignorePatterns: string[]): string {
+  const ignoreList = formatIgnoreConfig(ignorePatterns).replace(
+    /^module\.exports = /u,
+    ''
+  );
+  return `const mwtsConfig = require('mwts/eslint.config.js');
+
+const compatConfig = mwtsConfig.map(config => {
+  const parserOptions = config?.languageOptions?.parserOptions;
+  if (!parserOptions) {
+    return config;
+  }
+  const { project, projectService, ...nextParserOptions } = parserOptions;
+
+  return {
+    ...config,
+    languageOptions: {
+      ...config.languageOptions,
+      parserOptions: nextParserOptions,
+    },
+  };
+});
+
+module.exports = [
+  {
+    ignores: ${ignoreList.trim()},
+  },
+  ...compatConfig,
+  {
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
+    },
+  },
+];
+`;
 }
 
 export async function migrate(options: Options): Promise<boolean> {
@@ -83,7 +74,6 @@ export async function migrate(options: Options): Promise<boolean> {
   const legacyEslintConfig = path.join(root, '.eslintrc.json');
   const legacyEslintIgnore = path.join(root, '.eslintignore');
   const targetEslintConfig = path.join(root, 'eslint.config.js');
-  const targetEslintIgnore = path.join(root, 'eslint.ignores.js');
 
   if (!fs.existsSync(legacyEslintConfig)) {
     options.logger.log(
@@ -93,25 +83,23 @@ export async function migrate(options: Options): Promise<boolean> {
   }
 
   try {
-    options.logger.log('Writing eslint.config.js...');
-    if (!options.dryRun) {
-      fs.writeFileSync(targetEslintConfig, MIGRATED_ESLINT_CONFIG);
-    }
-
+    let ignorePatterns = DEFAULT_ESLINT_IGNORES;
     if (fs.existsSync(legacyEslintIgnore)) {
-      const ignorePatterns = parseIgnorePatterns(
+      const parsedIgnorePatterns = parseIgnorePatterns(
         fs.readFileSync(legacyEslintIgnore, 'utf8')
       );
-      if (ignorePatterns.length > 0) {
-        options.logger.log('Writing eslint.ignores.js...');
-        if (!options.dryRun) {
-          fs.writeFileSync(
-            targetEslintIgnore,
-            formatIgnoreConfig(ignorePatterns),
-            'utf8'
-          );
-        }
+      if (parsedIgnorePatterns.length > 0) {
+        ignorePatterns = parsedIgnorePatterns;
       }
+    }
+
+    options.logger.log('Writing eslint.config.js...');
+    if (!options.dryRun) {
+      fs.writeFileSync(
+        targetEslintConfig,
+        buildMigratedEslintConfig(ignorePatterns),
+        'utf8'
+      );
     }
 
     options.logger.log('Backing up legacy ESLint files...');

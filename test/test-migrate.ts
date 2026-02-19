@@ -34,19 +34,16 @@ describe('migrate', () => {
           'utf8'
         );
         assert.ok(eslintConfig.includes("require('mwts/eslint.config.js')"));
-        assert.ok(eslintConfig.includes('delete nextParserOptions.project;'));
+        assert.ok(eslintConfig.includes('const { project, projectService'));
+        assert.ok(eslintConfig.includes("ignores: ['dist', 'node_modules'],"));
         assert.ok(
           eslintConfig.includes(
             "'@typescript-eslint/no-floating-promises': 'off'"
           )
         );
-
-        const ignoreConfig = fs.readFileSync(
-          path.join(dir, 'eslint.ignores.js'),
-          'utf8'
-        );
-        assert.ok(ignoreConfig.includes("'dist'"));
-        assert.ok(ignoreConfig.includes("'node_modules'"));
+        assert.throws(() => {
+          fs.accessSync(path.join(dir, 'eslint.ignores.js'));
+        });
 
         assert.doesNotThrow(() => {
           fs.accessSync(path.join(dir, '.eslintrc.json.bak'));
