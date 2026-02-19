@@ -1,10 +1,17 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as JSON5 from 'json5';
 
 import { Options } from './cli';
 import { safeError } from './util';
 
 const DEFAULT_ESLINT_IGNORES = ['dist/', '**/node_modules/'];
+
+interface LegacyEslintrc {
+  ignorePatterns?: string | string[];
+  rules?: Record<string, unknown>;
+  env?: Record<string, boolean>;
+}
 
 function parseIgnorePatterns(contents: string): string[] {
   return contents
@@ -18,12 +25,56 @@ function formatIgnoreConfig(patterns: string[]): string {
   return `module.exports = [${escaped.join(', ')}]\n`;
 }
 
-function buildMigratedEslintConfig(ignorePatterns: string[]): string {
+function normalizeIgnorePatterns(
+  legacyIgnorePatterns: LegacyEslintrc['ignorePatterns'],
+  eslintIgnorePatterns: string[]
+): string[] {
+  const combined: string[] = [...DEFAULT_ESLINT_IGNORES];
+  const fromLegacyEslintrc = Array.isArray(legacyIgnorePatterns)
+    ? legacyIgnorePatterns
+    : legacyIgnorePatterns
+      ? [legacyIgnorePatterns]
+      : [];
+  combined.push(...fromLegacyEslintrc, ...eslintIgnorePatterns);
+
+  const deduped: string[] = [];
+  for (const pattern of combined) {
+    if (!deduped.includes(pattern)) {
+      deduped.push(pattern);
+    }
+  }
+  return deduped;
+}
+
+function buildMigratedEslintConfig(
+  ignorePatterns: string[],
+  legacyRules: LegacyEslintrc['rules'],
+  legacyEnv: LegacyEslintrc['env']
+): string {
   const ignoreList = formatIgnoreConfig(ignorePatterns).replace(
     /^module\.exports = /u,
     ''
   );
+  const rulesConfig = JSON.stringify(legacyRules || {}, null, 2);
+  const envConfig = JSON.stringify(legacyEnv || {}, null, 2);
   return `const mwtsConfig = require('mwts/eslint.config.js');
+const globals = require('globals');
+
+const legacyRules = ${rulesConfig};
+if (!Object.prototype.hasOwnProperty.call(
+  legacyRules,
+  '@typescript-eslint/no-floating-promises'
+)) {
+  legacyRules['@typescript-eslint/no-floating-promises'] = 'off';
+}
+
+const legacyEnv = ${envConfig};
+const legacyGlobals = Object.entries(legacyEnv).reduce((acc, [name, enabled]) => {
+  if (!enabled || !globals[name]) {
+    return acc;
+  }
+  return { ...acc, ...globals[name] };
+}, {});
 
 const compatConfig = mwtsConfig.map(config => {
   const parserOptions = config?.languageOptions?.parserOptions;
@@ -47,9 +98,10 @@ module.exports = [
   },
   ...compatConfig,
   {
-    rules: {
-      '@typescript-eslint/no-floating-promises': 'off',
+    languageOptions: {
+      globals: legacyGlobals,
     },
+    rules: legacyRules,
   },
 ];
 `;
@@ -83,21 +135,29 @@ export async function migrate(options: Options): Promise<boolean> {
   }
 
   try {
-    let ignorePatterns = DEFAULT_ESLINT_IGNORES;
+    const legacyEslintrcRaw = fs.readFileSync(legacyEslintConfig, 'utf8');
+    const legacyEslintrc = JSON5.parse(legacyEslintrcRaw) as LegacyEslintrc;
+
+    let eslintIgnorePatterns: string[] = [];
     if (fs.existsSync(legacyEslintIgnore)) {
-      const parsedIgnorePatterns = parseIgnorePatterns(
+      eslintIgnorePatterns = parseIgnorePatterns(
         fs.readFileSync(legacyEslintIgnore, 'utf8')
       );
-      if (parsedIgnorePatterns.length > 0) {
-        ignorePatterns = parsedIgnorePatterns;
-      }
     }
+    const ignorePatterns = normalizeIgnorePatterns(
+      legacyEslintrc.ignorePatterns,
+      eslintIgnorePatterns
+    );
 
     options.logger.log('Writing eslint.config.js...');
     if (!options.dryRun) {
       fs.writeFileSync(
         targetEslintConfig,
-        buildMigratedEslintConfig(ignorePatterns),
+        buildMigratedEslintConfig(
+          ignorePatterns,
+          legacyEslintrc.rules,
+          legacyEslintrc.env
+        ),
         'utf8'
       );
     }
