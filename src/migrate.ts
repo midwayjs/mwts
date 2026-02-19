@@ -41,7 +41,15 @@ const compatConfig = mwtsConfig.map(config => {
   };
 });
 
-module.exports = [...customConfig, ...compatConfig];
+module.exports = [
+  ...customConfig,
+  ...compatConfig,
+  {
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
+    },
+  },
+];
 `;
 
 function parseIgnorePatterns(contents: string): string[] {

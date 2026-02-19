@@ -110,6 +110,46 @@ describe('🚰 kitchen sink', () => {
     }
   });
 
+  it('should resolve eslint config from parent directory', () => {
+    const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
+    const workspacePath = path.join(tmpDir.name, 'workspace');
+    const pkgPath = path.join(workspacePath, 'packages', 'demo');
+    fs.ensureDirSync(path.join(pkgPath, 'src'));
+    fs.copySync(
+      path.join(stagingPath, 'mwts.tgz'),
+      path.join(workspacePath, 'mwts.tgz')
+    );
+    fs.writeFileSync(
+      path.join(workspacePath, 'eslint.config.js'),
+      "module.exports = [{ rules: { 'no-console': 'error' } }];\n",
+      'utf8'
+    );
+    fs.writeFileSync(path.join(pkgPath, 'src', 'demo.js'), 'console.log(1);\n');
+
+    const res = spawn.sync(
+      'npx',
+      [
+        '-p',
+        path.resolve(workspacePath, 'mwts.tgz'),
+        'mwts',
+        'lint',
+        'src/demo.js',
+      ],
+      {
+        cwd: pkgPath,
+        encoding: 'utf8',
+      }
+    );
+
+    assert.notStrictEqual(res.status, 0);
+    assert.ok(toString(res.stdout).includes('no-console'));
+    assert.ok(!toString(res.stdout).includes('parserOptions.project'));
+
+    if (!keep) {
+      tmpDir.removeCallback();
+    }
+  });
+
   it('should use as a non-locally installed module', () => {
     // Use from a directory different from where we have locally installed. This
     // simulates use as a globally installed module.

@@ -35,6 +35,11 @@ describe('migrate', () => {
         );
         assert.ok(eslintConfig.includes("require('mwts/eslint.config.js')"));
         assert.ok(eslintConfig.includes('delete nextParserOptions.project;'));
+        assert.ok(
+          eslintConfig.includes(
+            "'@typescript-eslint/no-floating-promises': 'off'"
+          )
+        );
 
         const ignoreConfig = fs.readFileSync(
           path.join(dir, 'eslint.ignores.js'),

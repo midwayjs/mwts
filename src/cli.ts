@@ -127,12 +127,27 @@ function usage(msg?: string): void {
   cli.showHelp(1);
 }
 
-function hasLocalEslintConfig(targetRootDir: string): boolean {
-  return (
-    fs.existsSync(path.join(targetRootDir, 'eslint.config.js')) ||
-    fs.existsSync(path.join(targetRootDir, 'eslint.config.cjs')) ||
-    fs.existsSync(path.join(targetRootDir, 'eslint.config.mjs'))
-  );
+function findNearestEslintConfig(targetRootDir: string): string | undefined {
+  const configNames = [
+    'eslint.config.js',
+    'eslint.config.cjs',
+    'eslint.config.mjs',
+  ];
+  let currentDir = path.resolve(targetRootDir);
+  while (true) {
+    for (const configName of configNames) {
+      const configPath = path.join(currentDir, configName);
+      if (fs.existsSync(configPath)) {
+        return configPath;
+      }
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      return undefined;
+    }
+    currentDir = parentDir;
+  }
 }
 
 export async function run(verb: string, files: string[]): Promise<boolean> {
@@ -182,11 +197,11 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
     case 'lint':
     case 'check': {
       const eslintFlags = [...flags];
-      if (!hasLocalEslintConfig(options.targetRootDir)) {
-        eslintFlags.unshift(
-          '--config',
-          path.join(options.mwtsRootDir, 'eslint.config.js')
-        );
+      const resolvedEslintConfig =
+        findNearestEslintConfig(options.targetRootDir) ||
+        path.join(options.mwtsRootDir, 'eslint.config.js');
+      if (resolvedEslintConfig) {
+        eslintFlags.unshift('--config', resolvedEslintConfig);
       }
       try {
         await execa('eslint', eslintFlags, {
@@ -213,11 +228,11 @@ export async function run(verb: string, files: string[]): Promise<boolean> {
       }
       const fixFlag = options.dryRun ? '--fix-dry-run' : '--fix';
       const eslintFlags = [fixFlag, ...flags];
-      if (!hasLocalEslintConfig(options.targetRootDir)) {
-        eslintFlags.unshift(
-          '--config',
-          path.join(options.mwtsRootDir, 'eslint.config.js')
-        );
+      const resolvedEslintConfig =
+        findNearestEslintConfig(options.targetRootDir) ||
+        path.join(options.mwtsRootDir, 'eslint.config.js');
+      if (resolvedEslintConfig) {
+        eslintFlags.unshift('--config', resolvedEslintConfig);
       }
       try {
         await execa('eslint', eslintFlags, {
