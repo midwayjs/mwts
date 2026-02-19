@@ -141,8 +141,9 @@ describe('🚰 kitchen sink', () => {
     );
 
     assert.notStrictEqual(res.status, 0);
-    assert.ok(toString(res.stdout).includes('no-console'));
-    assert.ok(!toString(res.stdout).includes('parserOptions.project'));
+    const output = `${toString(res.stdout)}${toString(res.stderr)}`;
+    assert.ok(output.includes('no-console'));
+    assert.ok(!output.includes('parserOptions.project'));
 
     if (!keep) {
       tmpDir.removeCallback();
