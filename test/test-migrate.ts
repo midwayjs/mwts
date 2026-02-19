@@ -44,7 +44,11 @@ describe('migrate', () => {
         );
         assert.ok(eslintConfig.includes("'packages/version'"));
         assert.ok(eslintConfig.includes("'site'"));
-        assert.ok(eslintConfig.includes('...mwtsConfig'));
+        assert.ok(eslintConfig.includes('const normalizedMwtsConfig ='));
+        assert.ok(
+          eslintConfig.includes('path.resolve(__dirname, projectPath)')
+        );
+        assert.ok(eslintConfig.includes('tsconfigRootDir: __dirname'));
         assert.ok(eslintConfig.includes('no-control-regex'));
         assert.ok(eslintConfig.includes('const legacyEnv = {'));
         assert.ok(eslintConfig.includes('"jest": true'));

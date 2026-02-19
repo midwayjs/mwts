@@ -57,7 +57,8 @@ function buildMigratedEslintConfig(
   );
   const rulesConfig = JSON.stringify(legacyRules || {}, null, 2);
   const envConfig = JSON.stringify(legacyEnv || {}, null, 2);
-  return `const mwtsConfig = require('mwts/eslint.config.js');
+  return `const path = require('path');
+const mwtsConfig = require('mwts/eslint.config.js');
 const globals = require('globals');
 
 const legacyRules = ${rulesConfig};
@@ -69,11 +70,36 @@ const legacyGlobals = Object.entries(legacyEnv).reduce((acc, [name, enabled]) =>
   return { ...acc, ...globals[name] };
 }, {});
 
+const normalizedMwtsConfig = mwtsConfig.map(config => {
+  const parserOptions = config?.languageOptions?.parserOptions;
+  const project = parserOptions?.project;
+  if (!project) {
+    return config;
+  }
+
+  const projectList = Array.isArray(project) ? project : [project];
+  const normalizedProjectList = projectList.map(projectPath =>
+    path.resolve(__dirname, projectPath)
+  );
+
+  return {
+    ...config,
+    languageOptions: {
+      ...config.languageOptions,
+      parserOptions: {
+        ...parserOptions,
+        project: normalizedProjectList,
+        tsconfigRootDir: __dirname,
+      },
+    },
+  };
+});
+
 module.exports = [
   {
     ignores: ${ignoreList.trim()},
   },
-  ...mwtsConfig,
+  ...normalizedMwtsConfig,
   {
     languageOptions: {
       globals: legacyGlobals,
