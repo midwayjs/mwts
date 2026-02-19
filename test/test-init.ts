@@ -273,11 +273,14 @@ describe('init', () => {
       { 'package.json': JSON.stringify({ name: 'test' }) },
       async () => {
         await init.init(OPTIONS_YES);
+        const eslintConfig = fs.readFileSync('./eslint.config.js', 'utf8');
         assert.doesNotThrow(() => {
           accessSync('./eslint.config.js');
-          accessSync('./eslint.ignores.js');
           accessSync('./.prettierrc.js');
         });
+        assert.ok(
+          eslintConfig.includes("ignores: ['dist/', '**/node_modules/']")
+        );
       }
     );
   });

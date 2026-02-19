@@ -71,7 +71,6 @@ describe('🚰 kitchen sink', () => {
     // Ensure config files got generated.
     fs.accessSync(path.join(kitchenPath, 'tsconfig.json'));
     fs.accessSync(path.join(kitchenPath, 'eslint.config.js'));
-    fs.accessSync(path.join(kitchenPath, 'eslint.ignores.js'));
     fs.accessSync(path.join(kitchenPath, '.prettierrc.js'));
 
     // Compilation shouldn't have happened. Hence no `dist` directory.
@@ -104,6 +103,46 @@ describe('🚰 kitchen sink', () => {
     );
     assert.notStrictEqual(checkRes.status, 0);
     assert.ok(!toString(checkRes.stderr).includes('eslint.config'));
+
+    if (!keep) {
+      tmpDir.removeCallback();
+    }
+  });
+
+  it('should resolve eslint config from parent directory', () => {
+    const tmpDir = tmp.dirSync({ keep, unsafeCleanup: true });
+    const workspacePath = path.join(tmpDir.name, 'workspace');
+    const pkgPath = path.join(workspacePath, 'packages', 'demo');
+    fs.ensureDirSync(path.join(pkgPath, 'src'));
+    fs.copySync(
+      path.join(stagingPath, 'mwts.tgz'),
+      path.join(workspacePath, 'mwts.tgz')
+    );
+    fs.writeFileSync(
+      path.join(workspacePath, 'eslint.config.js'),
+      "module.exports = [{ rules: { 'no-console': 'error' } }];\n",
+      'utf8'
+    );
+    fs.writeFileSync(path.join(pkgPath, 'src', 'demo.js'), 'console.log(1);\n');
+
+    const res = spawn.sync(
+      'npx',
+      [
+        '-p',
+        path.resolve(workspacePath, 'mwts.tgz'),
+        'mwts',
+        'lint',
+        'src/demo.js',
+      ],
+      {
+        cwd: pkgPath,
+        encoding: 'utf8',
+      }
+    );
+
+    assert.notStrictEqual(res.status, 0);
+    assert.ok(toString(res.stdout).includes('no-console'));
+    assert.ok(!toString(res.stdout).includes('parserOptions.project'));
 
     if (!keep) {
       tmpDir.removeCallback();
@@ -183,11 +222,6 @@ describe('🚰 kitchen sink', () => {
     assert.ok(
       fs
         .readFileSync(path.join(kitchenPath, 'eslint.config.js'), 'utf8')
-        .endsWith('\n')
-    );
-    assert.ok(
-      fs
-        .readFileSync(path.join(kitchenPath, 'eslint.ignores.js'), 'utf8')
         .endsWith('\n')
     );
     assert.ok(
