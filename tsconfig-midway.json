@@ -2,7 +2,8 @@
   "compilerOptions": {
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
-    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ES2023"],
     "module": "commonjs",
